@@ -1,7 +1,7 @@
 = FB2rb
 Marat Radchenko <maarat@slonopotamus.org>
 :slug: slonopotamus/fb2rb
-:uri-repo: https://github.com/{slug}
+:uri-project: https://github.com/{slug}
 :uri-ci: {uri-project}/actions?query=branch%3Amaster
 
 image:{uri-project}/workflows/CI/badge.svg?branch=master[Build Status,link={uri-ci}]
