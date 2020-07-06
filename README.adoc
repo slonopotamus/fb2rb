@@ -1,0 +1,43 @@
+= FB2rb
+Marat Radchenko <maarat@slonopotamus.org>
+:slug: slonopotamus/fb2rb
+:uri-repo: https://github.com/{slug}
+:uri-ci: {uri-project}/actions?query=branch%3Amaster
+
+image:{uri-project}/workflows/CI/badge.svg?branch=master[Build Status,link={uri-ci}]
+
+== Installation
+
+Add this line to your application's Gemfile:
+
+[source,ruby]
+----
+gem 'fb2rb'
+----
+
+And then execute:
+
+[source,shell script]
+----
+$ bundle install
+----
+
+Or install it yourself as:
+
+[source,shell script]
+----
+$ gem install fb2rb
+----
+
+== Usage
+
+// TODO: Write usage instructions here
+
+== Development
+
+After checking out the repo, run `bundle install` to install dependencies.
+Then, run `bundle exec rake spec` to run the tests.
+
+== Contributing
+
+Bug reports and pull requests are welcome on GitHub at {uri-repo}.
