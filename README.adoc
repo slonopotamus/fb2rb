@@ -39,7 +39,3 @@ $ gem install fb2rb
 
 After checking out the repo, run `bundle install` to install dependencies.
 Then, run `bundle exec rake spec` to run the tests.
-
-== Contributing
-
-Bug reports and pull requests are welcome on GitHub at {uri-repo}.
