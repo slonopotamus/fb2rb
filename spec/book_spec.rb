@@ -28,7 +28,7 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
 
   it 'has genres' do
     b = FB2rb::Book.new
-    b.description.title_info.genres.append 'science'
+    b.description.title_info.genres << 'science'
 
     io = StringIO.new
     b.write(io)
@@ -48,7 +48,7 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
       ['marat@slonopotamus.org'],
       'slonopotamus'
     )
-    b.description.title_info.authors.append(a)
+    b.description.title_info.authors << a
 
     io = StringIO.new
     b.write(io)

@@ -97,7 +97,7 @@ module FB2rb
     def add_binary_io(name, io, content_type = nil)
       io.binmode
       content = io.read
-      @binaries.append Binary.new(name, content, content_type)
+      @binaries << Binary.new(name, content, content_type)
       self
     end
 
