@@ -125,26 +125,99 @@ module FB2rb
   class Description
     attr_accessor(:title_info)
     attr_accessor(:src_title_info)
-    # TODO: document-info, publish-info, custom-info
+    attr_accessor(:document_info)
+    # TODO: publish-info, custom-info
 
-    def initialize(title_info = TitleInfo.new, src_title_info = nil)
+    def initialize(title_info = TitleInfo.new, document_info = DocumentInfo.new, src_title_info = nil)
       @title_info = title_info
+      @document_info = document_info
       @src_title_info = src_title_info
     end
 
     def self.parse(xml, fb2_prefix, xlink_prefix)
-      title_info_xml = xml.at("./#{fb2_prefix}:title-info")
       src_title_info_xml = xml.at("./#{fb2_prefix}:src-title-info")
       Description.new(
-        TitleInfo.parse(title_info_xml, fb2_prefix, xlink_prefix),
+        TitleInfo.parse(xml.at("./#{fb2_prefix}:title-info"), fb2_prefix, xlink_prefix),
+        DocumentInfo.parse(xml.at("./#{fb2_prefix}:document-info"), fb2_prefix),
         src_title_info_xml.nil? ? nil : TitleInfo.parse(src_title_info_xml, fb2_prefix, xlink_prefix)
       )
     end
 
     def to_xml(xml)
       xml.description do
-        title_info.to_xml(xml, :'title-info')
-        src_title_info&.to_xml(xml, :'src-title-info')
+        @title_info.to_xml(xml, :'title-info')
+        @src_title_info&.to_xml(xml, :'src-title-info')
+        @document_info.to_xml(xml)
+      end
+    end
+  end
+
+  # Holds <document-info> data
+  class DocumentInfo
+    attr_accessor(:authors)
+    attr_accessor(:program_used)
+    attr_accessor(:date)
+    attr_accessor(:src_urls)
+    attr_accessor(:src_ocr)
+    attr_accessor(:id)
+    attr_accessor(:version)
+    attr_accessor(:history)
+    attr_accessor(:publishers)
+
+    def initialize(authors = [], # rubocop:disable Metrics/ParameterLists
+                   program_used = nil,
+                   date = FB2Date.new,
+                   src_urls = [],
+                   src_ocr = nil,
+                   id = '',
+                   version = '',
+                   history = nil,
+                   publishers = [])
+      @authors = authors
+      @program_used = program_used
+      @date = date
+      @src_urls = src_urls
+      @src_ocr = src_ocr
+      @id = id
+      @version = version
+      @history = history
+      @publishers = publishers
+    end
+
+    def self.parse(xml, fb2_prefix) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength
+      date = xml.at("./#{fb2_prefix}:date")
+      DocumentInfo.new(
+        xml.xpath("./#{fb2_prefix}:author").map do |node|
+          Author.parse(node, fb2_prefix)
+        end,
+        xml.at("./#{fb2_prefix}:program-used")&.text,
+        date.nil? ? FB2Date.new : FB2Date.parse(date),
+        xml.xpath("./#{fb2_prefix}:src-url").map(&:text),
+        xml.at("./#{fb2_prefix}:src-ocr")&.text,
+        xml.at("./#{fb2_prefix}:id").text,
+        xml.at("./#{fb2_prefix}:version")&.text,
+        xml.at("./#{fb2_prefix}:history")&.children
+      )
+    end
+
+    def to_xml(xml) # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
+      xml.send(:'document-info') do
+        @authors.each do |author|
+          author.to_xml(xml, 'author')
+        end
+        xml.send('program-used', @program_used) unless @program_used.nil?
+        @date.to_xml(xml)
+        @src_urls.each do |src_url|
+          xml.send('src-url', src_url)
+        end
+        xml.send('src-ocr', @src_ocr) unless @src_ocr.nil?
+        xml.id(@id)
+        xml.version(@version) unless @version.nil?
+        unless @history.nil?
+          xml.history do
+            xml << @history
+          end
+        end
       end
     end
   end
@@ -196,7 +269,7 @@ module FB2rb
           Author.parse(node, fb2_prefix)
         end,
         xml.at("./#{fb2_prefix}:book-title/text()")&.text,
-        xml.at("./#{fb2_prefix}:annotation"),
+        xml.at("./#{fb2_prefix}:annotation")&.children,
         xml.at("./#{fb2_prefix}:keywords/text()")&.text&.split(', ') || [],
         date.nil? ? nil : FB2Date.parse(date),
         coverpage.nil? ? nil : Coverpage.parse(coverpage, fb2_prefix, xlink_prefix),
@@ -220,7 +293,11 @@ module FB2rb
           author.to_xml(xml, 'author')
         end
         xml.send('book-title', @book_title)
-        xml << @annotation unless @annotation.nil?
+        unless @annotation.nil?
+          xml.annotation do
+            xml << @annotation
+          end
+        end
         xml.keywords(@keywords.join(', ')) unless keywords.nil?
         @date.to_xml(xml) unless date.nil?
         @coverpage.to_xml(xml) unless coverpage.nil?
@@ -272,7 +349,7 @@ module FB2rb
     def self.parse(xml)
       value = xml['value']
       FB2Date.new(
-        xml.at('./text()').text,
+        xml.at('./text()')&.text || '',
         value.nil? ? nil : Date.parse(value)
       )
     end
