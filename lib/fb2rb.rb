@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'date'
 require 'fb2rb/version'
 require 'nokogiri'
 require 'zip'
@@ -7,12 +8,13 @@ require 'zip'
 # Fiction Book 2 parser/generator library
 module FB2rb
   FB2_NAMESPACE = 'http://www.gribuser.ru/xml/fictionbook/2.0'
+  XLINK_NAMESPACE = 'http://www.w3.org/1999/xlink'
 
   # Holds data of a single FB2 file
   class Book
-    attr_reader(:binaries)
-    attr_reader(:bodies)
-    attr_reader(:description)
+    attr_accessor(:binaries)
+    attr_accessor(:bodies)
+    attr_accessor(:description)
 
     def initialize(description = Description.new, bodies = [], binaries = [])
       @binaries = binaries
@@ -27,18 +29,26 @@ module FB2rb
           next if entry.directory?
 
           xml = Nokogiri::XML::Document.parse(zis)
-          fb2_prefix = xml.namespaces.key(FB2rb::FB2_NAMESPACE)
-          return parse(xml, fb2_prefix)
+          fb2_prefix = ns_prefix(FB2rb::FB2_NAMESPACE, xml.namespaces)
+          xlink_prefix = ns_prefix(FB2rb::XLINK_NAMESPACE, xml.namespaces)
+          return parse(xml, fb2_prefix, xlink_prefix)
         end
       end
     end
 
-    def self.parse(xml, fb2_prefix)
+    def self.ns_prefix(namespace, namespaces)
+      prefix = namespaces.key(namespace)
+      prefix.nil? ? nil : prefix.sub(/^xmlns:/, '')
+    end
+
+    def self.parse(xml, fb2_prefix, xlink_prefix)
       Book.new(
-        Description.parse(xml.xpath("/#{fb2_prefix}:FictionBook/#{fb2_prefix}:description"), fb2_prefix),
-        xml.xpath("/#{fb2_prefix}:FictionBook/#{fb2_prefix}:body").map(&:to_s),
-        xml.xpath("#{fb2_prefix}:FictionBook/#{fb2_prefix}:binary").map do |binary|
-          Binary.parse(binary)
+        Description.parse(xml.xpath("/#{fb2_prefix}:FictionBook/#{fb2_prefix}:description"), fb2_prefix, xlink_prefix),
+        xml.xpath("/#{fb2_prefix}:FictionBook/#{fb2_prefix}:body").map do |node|
+          Body.parse(node)
+        end,
+        xml.xpath("#{fb2_prefix}:FictionBook/#{fb2_prefix}:binary").map do |node|
+          Binary.parse(node)
         end
       )
     end
@@ -78,7 +88,7 @@ module FB2rb
                       'xmlns:l' => 'http://www.w3.org/1999/xlink') do
         @description.to_xml(xml)
         @bodies.each do |body|
-          xml << body
+          body.to_xml(xml)
         end
         @binaries.each do |binary|
           binary.to_xml(xml)
@@ -106,14 +116,15 @@ module FB2rb
       builder = Nokogiri::XML::Builder.new(encoding: 'UTF-8') do |xml|
         to_xml(xml)
       end
-      io.write(builder.to_xml)
+      xml = builder.to_xml(save_with: Nokogiri::XML::Node::SaveOptions::AS_XML)
+      io.write(xml)
     end
   end
 
   # Holds <description> data
   class Description
-    attr_reader(:title_info)
-    attr_reader(:src_title_info)
+    attr_accessor(:title_info)
+    attr_accessor(:src_title_info)
     # TODO: document-info, publish-info, custom-info
 
     def initialize(title_info = TitleInfo.new, src_title_info = nil)
@@ -121,78 +132,189 @@ module FB2rb
       @src_title_info = src_title_info
     end
 
-    def self.parse(xml, fb2_prefix)
+    def self.parse(xml, fb2_prefix, xlink_prefix)
       title_info_xml = xml.at("./#{fb2_prefix}:title-info")
       src_title_info_xml = xml.at("./#{fb2_prefix}:src-title-info")
       Description.new(
-        TitleInfo.parse(title_info_xml, fb2_prefix),
-        src_title_info_xml.nil? ? nil : TitleInfo.parse(src_title_info_xml, fb2_prefix)
+        TitleInfo.parse(title_info_xml, fb2_prefix, xlink_prefix),
+        src_title_info_xml.nil? ? nil : TitleInfo.parse(src_title_info_xml, fb2_prefix, xlink_prefix)
       )
     end
 
     def to_xml(xml)
-      title_info.to_xml(xml, :'title-info')
-      src_title_info&.to_xml(xml, :'src-title-info')
+      xml.description do
+        title_info.to_xml(xml, :'title-info')
+        src_title_info&.to_xml(xml, :'src-title-info')
+      end
     end
   end
 
   # Holds <title-info>/<src-title-info> data
   class TitleInfo
-    attr_reader(:genres)
-    attr_reader(:authors)
-    attr_reader(:book_title)
-    attr_reader(:annotation)
-    attr_reader(:keywords)
+    attr_accessor(:genres)
+    attr_accessor(:authors)
+    attr_accessor(:book_title)
+    attr_accessor(:annotation)
+    attr_accessor(:keywords)
+    attr_accessor(:date)
+    attr_accessor(:coverpage)
+    attr_accessor(:lang)
+    attr_accessor(:src_lang)
+    attr_accessor(:translators)
+    attr_accessor(:sequences)
 
-    # TODO: date, coverpage, lang, src-lang, translator, sequence
-
-    def initialize(genres = [], authors = [], book_title = '', annotation = nil, keywords = nil)
+    def initialize(genres = [], # rubocop:disable Metrics/MethodLength, Metrics/ParameterLists
+                   authors = [],
+                   book_title = '',
+                   annotation = nil,
+                   keywords = [],
+                   date = nil,
+                   coverpage = nil,
+                   lang = 'en',
+                   src_lang = nil,
+                   translators = [],
+                   sequences = [])
       @genres = genres
       @authors = authors
       @book_title = book_title
       @annotation = annotation
       @keywords = keywords
+      @date = date
+      @coverpage = coverpage
+      @lang = lang
+      @src_lang = src_lang
+      @translators = translators
+      @sequences = sequences
     end
 
-    def self.parse(xml, fb2_prefix)
+    def self.parse(xml, fb2_prefix, xlink_prefix) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength
+      date = xml.at("./#{fb2_prefix}:date")
+      coverpage = xml.at("./#{fb2_prefix}:coverpage")
       TitleInfo.new(
         xml.xpath("./#{fb2_prefix}:genre/text()").map(&:text),
         xml.xpath("./#{fb2_prefix}:author").map do |node|
           Author.parse(node, fb2_prefix)
         end,
         xml.at("./#{fb2_prefix}:book-title/text()")&.text,
-        # TODO: is it correct?
-        xml.at("./#{fb2_prefix}:annotation")&.text,
-        xml.at("./#{fb2_prefix}:keywords/text()")&.text
+        xml.at("./#{fb2_prefix}:annotation"),
+        xml.at("./#{fb2_prefix}:keywords/text()")&.text&.split(', ') || [],
+        date.nil? ? nil : FB2Date.parse(date),
+        coverpage.nil? ? nil : Coverpage.parse(coverpage, fb2_prefix, xlink_prefix),
+        xml.at("./#{fb2_prefix}:lang/text()").text,
+        xml.at("./#{fb2_prefix}:src-lang/text()")&.text,
+        xml.xpath("./#{fb2_prefix}:translator").map do |node|
+          Author.parse(node, fb2_prefix)
+        end,
+        xml.xpath("./#{fb2_prefix}:sequence").map do |node|
+          Sequence.parse(node)
+        end
       )
     end
 
-    def to_xml(xml, tag) # rubocop:disable Metrics/MethodLength
-      xml.description do
-        xml.send(tag) do
-          genres.each do |genre|
-            xml.genre(genre)
-          end
-          authors.each do |author|
-            author.to_xml(xml)
-          end
-          xml.send('book-title', @book_title)
-          xml << @annotation unless @annotation.nil?
-          xml.keywords(@keywords) unless keywords.nil?
+    def to_xml(xml, tag) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength
+      xml.send(tag) do
+        genres.each do |genre|
+          xml.genre(genre)
         end
+        authors.each do |author|
+          author.to_xml(xml, 'author')
+        end
+        xml.send('book-title', @book_title)
+        xml << @annotation unless @annotation.nil?
+        xml.keywords(@keywords.join(', ')) unless keywords.nil?
+        @date.to_xml(xml) unless date.nil?
+        @coverpage.to_xml(xml) unless coverpage.nil?
+        xml.lang(@lang)
+        xml.send('src-lang') unless src_lang.nil?
+        @translators.each do |translator|
+          translator.to_xml(xml, 'translator')
+        end
+        @sequences.each do |sequence|
+          sequence.to_xml(xml)
+        end
+      end
+    end
+  end
+
+  # Holds <coverpage> data
+  class Coverpage
+    attr_accessor(:images)
+
+    def initialize(images = [])
+      @images = images
+    end
+
+    def self.parse(xml, fb2_prefix, xlink_prefix)
+      Coverpage.new(
+        xml.xpath("./#{fb2_prefix}:image/@#{xlink_prefix}:href").map(&:to_s)
+      )
+    end
+
+    def to_xml(xml)
+      xml.coverpage do
+        @images.each do |image|
+          xml.image('l:href' => image)
+        end
+      end
+    end
+  end
+
+  # Holds <date> data
+  class FB2Date
+    attr_accessor(:display_value)
+    attr_accessor(:value)
+
+    def initialize(display_value = '', value = nil)
+      @display_value = display_value
+      @value = value
+    end
+
+    def self.parse(xml)
+      value = xml['value']
+      FB2Date.new(
+        xml.at('./text()').text,
+        value.nil? ? nil : Date.parse(value)
+      )
+    end
+
+    def to_xml(xml)
+      xml.date do
+        xml.parent.set_attribute('value', @value.to_s) unless value.nil?
+        xml.text(@display_value)
+      end
+    end
+  end
+
+  # Holds <sequence> data
+  class Sequence
+    attr_accessor(:name)
+    attr_accessor(:number)
+
+    def initialize(name = '', number = nil)
+      @name = name
+      @number = number
+    end
+
+    def self.parse(xml)
+      Sequence.new(xml['name'], xml['number']&.to_i)
+    end
+
+    def to_xml(xml)
+      xml.send('sequence', 'name' => @name) do
+        xml.parent.set_attribute('number', @number) unless @number.nil?
       end
     end
   end
 
   # Holds <author> data
   class Author
-    attr_reader(:first_name)
-    attr_reader(:middle_name)
-    attr_reader(:last_name)
-    attr_reader(:nickname)
-    attr_reader(:home_pages)
-    attr_reader(:emails)
-    attr_reader(:id)
+    attr_accessor(:first_name)
+    attr_accessor(:middle_name)
+    attr_accessor(:last_name)
+    attr_accessor(:nickname)
+    attr_accessor(:home_pages)
+    attr_accessor(:emails)
+    attr_accessor(:id)
 
     def initialize(first_name = nil, # rubocop:disable Metrics/ParameterLists
                    middle_name = nil,
@@ -222,8 +344,8 @@ module FB2rb
       )
     end
 
-    def to_xml(xml) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength
-      xml.author do
+    def to_xml(xml, tag) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength
+      xml.send(tag) do
         xml.send('first-name', @first_name) unless @first_name.nil?
         xml.send('middle-name', @middle_name) unless @middle_name.nil?
         xml.send('last-name', @last_name) unless @last_name.nil?
@@ -239,11 +361,36 @@ module FB2rb
     end
   end
 
+  # Holds <body> data
+  class Body
+    attr_accessor(:name)
+    attr_accessor(:content)
+
+    def initialize(name = nil, content = '')
+      @name = name
+      @content = content
+    end
+
+    def self.parse(xml)
+      Body.new(
+        xml['name'],
+        xml.children
+      )
+    end
+
+    def to_xml(xml)
+      xml.body do
+        xml.parent.set_attribute('name', @name) unless @name.nil?
+        xml << content
+      end
+    end
+  end
+
   # Holds data of a single binary within FB2 file
   class Binary
-    attr_reader(:id)
-    attr_reader(:content)
-    attr_reader(:content_type)
+    attr_accessor(:id)
+    attr_accessor(:content)
+    attr_accessor(:content_type)
 
     def initialize(name, content, content_type = nil)
       @id = name
