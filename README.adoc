@@ -1,5 +1,6 @@
-= FB2rb
+= {project-name}
 Marat Radchenko <maarat@slonopotamus.org>
+:project-name: FB2rb
 :project-handle: fb2rb
 :slug: slonopotamus/{project-handle}
 :uri-project: https://github.com/{slug}
@@ -9,7 +10,7 @@ Marat Radchenko <maarat@slonopotamus.org>
 image:https://img.shields.io/gem/v/{fb2rb}.svg[Latest Release,link={uri-gem}]
 image:{uri-project}/workflows/CI/badge.svg?branch=master[Build Status,link={uri-ci}]
 
-FB2rb is a http://gribuser.ru/xml/fictionbook/index.html.en[Fiction Book 2] parser/generator library written in Ruby.
+{project-handle} is a http://gribuser.ru/xml/fictionbook/index.html.en[Fiction Book 2] parser/generator library written in Ruby.
 
 == Installation
 
@@ -36,7 +37,16 @@ $ gem install fb2rb
 
 == Usage
 
-// TODO: Write usage instructions here
+[source,ruby]
+----
+book = FB2rb::Book.new
+book.description.title_info.book_title = 'Book title'
+
+body = FB2rb::Body.new(nil, '<p>Book text</p>')
+book.bodies << body
+
+book.write('/path/to/book.fb2.zip')
+----
 
 == Development
 

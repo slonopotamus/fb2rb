@@ -77,7 +77,7 @@ module FB2rb
           write_to_zip(zos)
         end
       else
-        Zip::OutputStream.open(path) do |zos|
+        Zip::OutputStream.open(filename_or_io) do |zos|
           write_to_zip(zos)
         end
       end
