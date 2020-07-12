@@ -126,19 +126,26 @@ module FB2rb
     attr_accessor(:title_info)
     attr_accessor(:src_title_info)
     attr_accessor(:document_info)
-    # TODO: publish-info, custom-info
+    attr_accessor(:publish_info)
+    # TODO: custom-info
 
-    def initialize(title_info = TitleInfo.new, document_info = DocumentInfo.new, src_title_info = nil)
+    def initialize(title_info = TitleInfo.new,
+                   document_info = DocumentInfo.new,
+                   publish_info = nil,
+                   src_title_info = nil)
       @title_info = title_info
       @document_info = document_info
+      @publish_info = publish_info
       @src_title_info = src_title_info
     end
 
     def self.parse(xml, fb2_prefix, xlink_prefix)
+      publish_info_xml = xml.at("./#{fb2_prefix}:publish-info")
       src_title_info_xml = xml.at("./#{fb2_prefix}:src-title-info")
       Description.new(
         TitleInfo.parse(xml.at("./#{fb2_prefix}:title-info"), fb2_prefix, xlink_prefix),
         DocumentInfo.parse(xml.at("./#{fb2_prefix}:document-info"), fb2_prefix),
+        publish_info_xml.nil? ? nil : PublishInfo.parse(publish_info_xml, fb2_prefix),
         src_title_info_xml.nil? ? nil : TitleInfo.parse(src_title_info_xml, fb2_prefix, xlink_prefix)
       )
     end
@@ -148,6 +155,57 @@ module FB2rb
         @title_info.to_xml(xml, :'title-info')
         @src_title_info&.to_xml(xml, :'src-title-info')
         @document_info.to_xml(xml)
+        @publish_info&.to_xml(xml)
+      end
+    end
+  end
+
+  # Holds <publish-info> data
+  class PublishInfo
+    attr_accessor(:book_name)
+    attr_accessor(:publisher)
+    attr_accessor(:city)
+    attr_accessor(:year)
+    attr_accessor(:isbn)
+    attr_accessor(:sequences)
+
+    def initialize(book_name = nil, # rubocop:disable Metrics/ParameterLists
+                   publisher = nil,
+                   city = nil,
+                   year = nil,
+                   isbn = nil,
+                   sequences = [])
+      @book_name = book_name
+      @publisher = publisher
+      @city = city
+      @year = year
+      @isbn = isbn
+      @sequences = sequences
+    end
+
+    def self.parse(xml, fb2_prefix)
+      PublishInfo.new(
+        xml.at("./#{fb2_prefix}:book-name/text()")&.text,
+        xml.at("./#{fb2_prefix}:publisher/text()")&.text,
+        xml.at("./#{fb2_prefix}:city/text()")&.text,
+        xml.at("./#{fb2_prefix}:year/text()")&.text,
+        xml.at("./#{fb2_prefix}:isbn/text()")&.text,
+        xml.xpath("./#{fb2_prefix}:sequence").map do |node|
+          Sequence.parse(node)
+        end
+      )
+    end
+
+    def to_xml(xml)
+      xml.send('publish-info') do
+        xml.send('book-name', @book_name) unless @book_name.nil?
+        xml.publisher(@publisher) unless @publisher.nil?
+        xml.city(@city) unless @city.nil?
+        xml.year(@year) unless @year.nil?
+        xml.isbn(@isbn) unless @isbn.nil?
+        @sequences.each do |sequence|
+          sequence.to_xml(xml)
+        end
       end
     end
   end

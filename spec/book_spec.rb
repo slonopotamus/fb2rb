@@ -36,8 +36,10 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
     b.write(io)
 
     b2 = FB2rb::Book.read(io)
-    expect(b2.bodies[0].name).to eq(body.name)
-    expect(b2.bodies[0].content.to_s).to eq(body.content)
+    body2 = b2.bodies[0]
+    expect(body2).not_to be_nil
+    expect(body2.name).to eq(body.name)
+    expect(body2.content.to_s).to eq(body.content)
   end
 
   it 'has title info' do # rubocop:disable Metrics/BlockLength
@@ -75,6 +77,7 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
     expect(b2.description.title_info.coverpage.images).to eq(b.description.title_info.coverpage.images)
 
     a2 = b2.description.title_info.authors[0]
+    expect(a2).not_to be_nil
     expect(a2.first_name).to eq(a.first_name)
     expect(a2.middle_name).to eq(a.middle_name)
     expect(a2.last_name).to eq(a.last_name)
@@ -93,6 +96,7 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
     expect(t2.id).to eq(a.id)
 
     s2 = b2.description.title_info.sequences[0]
+    expect(s2).not_to be_nil
     expect(s2.name).to eq(s.name)
     expect(s2.number).to eq(s.number)
   end
@@ -128,6 +132,7 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
     expect(b2.description.document_info.history.to_s).to eq(b.description.document_info.history)
 
     a2 = b2.description.document_info.authors[0]
+    expect(a2).not_to be_nil
     expect(a2.first_name).to eq(a.first_name)
     expect(a2.middle_name).to eq(a.middle_name)
     expect(a2.last_name).to eq(a.last_name)
@@ -135,5 +140,32 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
     expect(a2.home_pages).to eq(a.home_pages)
     expect(a2.emails).to eq(a.emails)
     expect(a2.id).to eq(a.id)
+  end
+
+  it 'has publish info' do
+    b = FB2rb::Book.new
+    b.description.publish_info = FB2rb::PublishInfo.new
+    b.description.publish_info.book_name = 'Book'
+    b.description.publish_info.publisher = 'Publisher'
+    b.description.publish_info.city = 'Moscow'
+    b.description.publish_info.year = '2020'
+    b.description.publish_info.isbn = '12345'
+    s = FB2rb::Sequence.new('seq', 42)
+    b.description.publish_info.sequences << s
+
+    io = StringIO.new
+    b.write(io)
+
+    b2 = FB2rb::Book.read(io)
+    expect(b2.description.publish_info.book_name).to eq(b.description.publish_info.book_name)
+    expect(b2.description.publish_info.publisher).to eq(b.description.publish_info.publisher)
+    expect(b2.description.publish_info.city).to eq(b.description.publish_info.city)
+    expect(b2.description.publish_info.year).to eq(b.description.publish_info.year)
+    expect(b2.description.publish_info.isbn).to eq(b.description.publish_info.isbn)
+
+    s2 = b2.description.publish_info.sequences[0]
+    expect(s2).not_to be_nil
+    expect(s2.name).to eq(s.name)
+    expect(s2.number).to eq(s.number)
   end
 end
