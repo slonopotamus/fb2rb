@@ -39,6 +39,8 @@ $ gem install fb2rb
 
 [source,ruby]
 ----
+require 'fb2rb'
+
 book = FB2rb::Book.new
 book.description.title_info.book_title = 'Book title'
 
