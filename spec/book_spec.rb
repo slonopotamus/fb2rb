@@ -168,4 +168,19 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
     expect(s2.name).to eq(s.name)
     expect(s2.number).to eq(s.number)
   end
+
+  it 'has custom info' do
+    b = FB2rb::Book.new
+    c = FB2rb::CustomInfo.new('fb2rb', 'custom data')
+    b.description.custom_infos << c
+
+    io = StringIO.new
+    b.write(io)
+
+    b2 = FB2rb::Book.read(io)
+    c2 = b2.description.custom_infos[0]
+    expect(c2).not_to be_nil
+    expect(c2.info_type).to eq(c.info_type)
+    expect(c2.content.to_s).to eq(c.content)
+  end
 end

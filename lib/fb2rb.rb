@@ -127,26 +127,31 @@ module FB2rb
     attr_accessor(:src_title_info)
     attr_accessor(:document_info)
     attr_accessor(:publish_info)
-    # TODO: custom-info
+    attr_accessor(:custom_infos)
 
     def initialize(title_info = TitleInfo.new,
                    document_info = DocumentInfo.new,
                    publish_info = nil,
-                   src_title_info = nil)
+                   src_title_info = nil,
+                   custom_infos = [])
       @title_info = title_info
       @document_info = document_info
       @publish_info = publish_info
       @src_title_info = src_title_info
+      @custom_infos = custom_infos
     end
 
-    def self.parse(xml, fb2_prefix, xlink_prefix)
+    def self.parse(xml, fb2_prefix, xlink_prefix) # rubocop:disable Metrics/MethodLength
       publish_info_xml = xml.at("./#{fb2_prefix}:publish-info")
       src_title_info_xml = xml.at("./#{fb2_prefix}:src-title-info")
       Description.new(
         TitleInfo.parse(xml.at("./#{fb2_prefix}:title-info"), fb2_prefix, xlink_prefix),
         DocumentInfo.parse(xml.at("./#{fb2_prefix}:document-info"), fb2_prefix),
         publish_info_xml.nil? ? nil : PublishInfo.parse(publish_info_xml, fb2_prefix),
-        src_title_info_xml.nil? ? nil : TitleInfo.parse(src_title_info_xml, fb2_prefix, xlink_prefix)
+        src_title_info_xml.nil? ? nil : TitleInfo.parse(src_title_info_xml, fb2_prefix, xlink_prefix),
+        xml.xpath("./#{fb2_prefix}:custom-info").map do |node|
+          CustomInfo.parse(node)
+        end
       )
     end
 
@@ -156,6 +161,30 @@ module FB2rb
         @src_title_info&.to_xml(xml, :'src-title-info')
         @document_info.to_xml(xml)
         @publish_info&.to_xml(xml)
+        @custom_infos.each do |custom_info|
+          custom_info.to_xml(xml)
+        end
+      end
+    end
+  end
+
+  # Holds <custom-info> data
+  class CustomInfo
+    attr_accessor(:info_type)
+    attr_accessor(:content)
+
+    def initialize(info_type = '', content = nil)
+      @info_type = info_type
+      @content = content
+    end
+
+    def self.parse(xml)
+      CustomInfo.new(xml['info-type'], xml.children)
+    end
+
+    def to_xml(xml)
+      xml.send('custom-info', 'info-type' => @info_type) do
+        xml << @content
       end
     end
   end
