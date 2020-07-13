@@ -4,14 +4,19 @@ require 'date'
 require 'spec_helper'
 
 describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
-  it 'saves and loads to StringIO' do
+  it 'has stylesheets' do
     b = FB2rb::Book.new
+    stylesheet = FB2rb::Stylesheet.new('text/css', 'p { color: red; }')
+    b.stylesheets << stylesheet
 
     io = StringIO.new
     b.write(io)
 
     b2 = FB2rb::Book.read(io)
-    expect(b2).not_to be_nil
+    stylesheet2 = b2.stylesheets[0]
+    expect(stylesheet2).not_to be_nil
+    expect(stylesheet2.type).to eq(stylesheet.type)
+    expect(stylesheet2.content.to_s).to eq(stylesheet.content)
   end
 
   it 'has binaries' do

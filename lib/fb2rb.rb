@@ -12,14 +12,16 @@ module FB2rb
 
   # Holds data of a single FB2 file
   class Book
-    attr_accessor(:binaries)
-    attr_accessor(:bodies)
+    attr_accessor(:stylesheets)
     attr_accessor(:description)
+    attr_accessor(:bodies)
+    attr_accessor(:binaries)
 
-    def initialize(description = Description.new, bodies = [], binaries = [])
+    def initialize(description = Description.new, bodies = [], binaries = [], stylesheets = [])
       @binaries = binaries
       @bodies = bodies
       @description = description
+      @stylesheets = stylesheets
     end
 
     # Reads existing FB2 file from an IO object, and creates new Book object.
@@ -41,7 +43,7 @@ module FB2rb
       prefix.nil? ? nil : prefix.sub(/^xmlns:/, '')
     end
 
-    def self.parse(xml, fb2_prefix, xlink_prefix)
+    def self.parse(xml, fb2_prefix, xlink_prefix) # rubocop:disable Metrics/MethodLength
       Book.new(
         Description.parse(xml.xpath("/#{fb2_prefix}:FictionBook/#{fb2_prefix}:description"), fb2_prefix, xlink_prefix),
         xml.xpath("/#{fb2_prefix}:FictionBook/#{fb2_prefix}:body").map do |node|
@@ -49,8 +51,27 @@ module FB2rb
         end,
         xml.xpath("#{fb2_prefix}:FictionBook/#{fb2_prefix}:binary").map do |node|
           Binary.parse(node)
+        end,
+        xml.xpath("/#{fb2_prefix}:FictionBook/#{fb2_prefix}:stylesheet").map do |node|
+          Stylesheet.parse(node)
         end
       )
+    end
+
+    def to_xml(xml) # rubocop:disable Metrics/MethodLength
+      xml.FictionBook('xmlns' => FB2rb::FB2_NAMESPACE,
+                      'xmlns:l' => 'http://www.w3.org/1999/xlink') do
+        @stylesheets.each do |stylesheet|
+          stylesheet.to_xml(xml)
+        end
+        @description.to_xml(xml)
+        @bodies.each do |body|
+          body.to_xml(xml)
+        end
+        @binaries.each do |binary|
+          binary.to_xml(xml)
+        end
+      end
     end
 
     def add_binary(name, filename_or_io, content_type = nil)
@@ -79,19 +100,6 @@ module FB2rb
       else
         Zip::OutputStream.open(filename_or_io) do |zos|
           write_to_zip(zos)
-        end
-      end
-    end
-
-    def to_xml(xml)
-      xml.FictionBook('xmlns' => FB2rb::FB2_NAMESPACE,
-                      'xmlns:l' => 'http://www.w3.org/1999/xlink') do
-        @description.to_xml(xml)
-        @bodies.each do |body|
-          body.to_xml(xml)
-        end
-        @binaries.each do |binary|
-          binary.to_xml(xml)
         end
       end
     end
@@ -168,6 +176,29 @@ module FB2rb
     end
   end
 
+  # Holds <stylesheet> data
+  class Stylesheet
+    attr_accessor(:type)
+    attr_accessor(:content)
+
+    def initialize(type = '', content = nil)
+      @type = type
+      @content = content
+    end
+
+    def self.parse(xml)
+      Stylesheet.new(xml['type'], xml.children)
+    end
+
+    def to_xml(xml)
+      return if @content.nil?
+
+      xml.send('stylesheet', 'type' => @type) do
+        xml << @content
+      end
+    end
+  end
+
   # Holds <custom-info> data
   class CustomInfo
     attr_accessor(:info_type)
@@ -183,6 +214,8 @@ module FB2rb
     end
 
     def to_xml(xml)
+      return if @content.nil?
+
       xml.send('custom-info', 'info-type' => @info_type) do
         xml << @content
       end
@@ -543,6 +576,8 @@ module FB2rb
     end
 
     def to_xml(xml)
+      return if @content.nil?
+
       xml.body do
         xml.parent.set_attribute('name', @name) unless @name.nil?
         xml << content
