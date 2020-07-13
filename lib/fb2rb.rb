@@ -136,6 +136,7 @@ module FB2rb
     attr_accessor(:document_info)
     attr_accessor(:publish_info)
     attr_accessor(:custom_infos)
+    # TODO: <output>
 
     def initialize(title_info = TitleInfo.new,
                    document_info = DocumentInfo.new,
