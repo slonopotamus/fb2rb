@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'base64'
 require 'date'
 require 'fb2rb/version'
 require 'nokogiri'
@@ -124,7 +125,7 @@ module FB2rb
       builder = Nokogiri::XML::Builder.new(encoding: 'UTF-8') do |xml|
         to_xml(xml)
       end
-      xml = builder.to_xml(save_with: Nokogiri::XML::Node::SaveOptions::AS_XML)
+      xml = builder.to_xml
       io.write(xml)
     end
   end
@@ -188,15 +189,13 @@ module FB2rb
     end
 
     def self.parse(xml)
-      Stylesheet.new(xml['type'], xml.children)
+      Stylesheet.new(xml['type'], xml.text)
     end
 
     def to_xml(xml)
       return if @content.nil?
 
-      xml.send('stylesheet', 'type' => @type) do
-        xml << @content
-      end
+      xml.send('stylesheet', @content, 'type' => @type)
     end
   end
 
@@ -211,15 +210,13 @@ module FB2rb
     end
 
     def self.parse(xml)
-      CustomInfo.new(xml['info-type'], xml.children)
+      CustomInfo.new(xml['info-type'], xml.text)
     end
 
     def to_xml(xml)
       return if @content.nil?
 
-      xml.send('custom-info', 'info-type' => @info_type) do
-        xml << @content
-      end
+      xml.send('custom-info', @content, 'info-type' => @info_type)
     end
   end
 
@@ -317,7 +314,7 @@ module FB2rb
         xml.at("./#{fb2_prefix}:src-ocr")&.text,
         xml.at("./#{fb2_prefix}:id").text,
         xml.at("./#{fb2_prefix}:version")&.text,
-        xml.at("./#{fb2_prefix}:history")&.children
+        xml.at("./#{fb2_prefix}:history")&.children&.to_s&.strip
       )
     end
 
@@ -390,7 +387,7 @@ module FB2rb
           Author.parse(node, fb2_prefix)
         end,
         xml.at("./#{fb2_prefix}:book-title/text()")&.text,
-        xml.at("./#{fb2_prefix}:annotation")&.children,
+        xml.at("./#{fb2_prefix}:annotation")&.children.to_s.strip,
         xml.at("./#{fb2_prefix}:keywords/text()")&.text&.split(', ') || [],
         date.nil? ? nil : FB2Date.parse(date),
         coverpage.nil? ? nil : Coverpage.parse(coverpage, fb2_prefix, xlink_prefix),
@@ -476,9 +473,8 @@ module FB2rb
     end
 
     def to_xml(xml)
-      xml.date do
-        xml.parent.set_attribute('value', @value.to_s) unless value.nil?
-        xml.text(@display_value)
+      xml.date(@display_value) do
+        xml.parent['value'] = @value.to_s unless value.nil?
       end
     end
   end
@@ -499,7 +495,7 @@ module FB2rb
 
     def to_xml(xml)
       xml.send('sequence', 'name' => @name) do
-        xml.parent.set_attribute('number', @number) unless @number.nil?
+        xml.parent['number'] = @number unless @number.nil?
       end
     end
   end
@@ -572,7 +568,7 @@ module FB2rb
     def self.parse(xml)
       Body.new(
         xml['name'],
-        xml.children
+        xml.children.to_s.strip
       )
     end
 
@@ -580,8 +576,8 @@ module FB2rb
       return if @content.nil?
 
       xml.body do
-        xml.parent.set_attribute('name', @name) unless @name.nil?
-        xml << content
+        xml.parent['name'] = @name unless @name.nil?
+        xml << @content
       end
     end
   end
@@ -599,13 +595,13 @@ module FB2rb
     end
 
     def self.parse(xml)
-      Binary.new(xml['id'], xml.text, xml['content-type'])
+      decoded = Base64.decode64(xml.text)
+      Binary.new(xml['id'], decoded, xml['content-type'])
     end
 
     def to_xml(xml)
-      xml.binary('id' => @id, 'content-type' => @content_type) do
-        xml.text(@content)
-      end
+      encoded = Base64.encode64(@content)
+      xml.binary(encoded, 'id' => @id, 'content-type' => @content_type)
     end
   end
 end

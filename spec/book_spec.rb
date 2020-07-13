@@ -16,7 +16,7 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
     stylesheet2 = b2.stylesheets[0]
     expect(stylesheet2).not_to be_nil
     expect(stylesheet2.type).to eq(stylesheet.type)
-    expect(stylesheet2.content.to_s).to eq(stylesheet.content)
+    expect(stylesheet2.content).to eq(stylesheet.content)
   end
 
   it 'has binaries' do
@@ -44,7 +44,7 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
     body2 = b2.bodies[0]
     expect(body2).not_to be_nil
     expect(body2.name).to eq(body.name)
-    expect(body2.content.to_s).to eq(body.content)
+    expect(body2.content).to match(%r{<p( xmlns=".*")?>text</p>})
   end
 
   it 'has title info' do # rubocop:disable Metrics/BlockLength
@@ -76,7 +76,7 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
     expect(b2.description.title_info.genres).to eq(['science'])
     expect(b2.description.title_info.book_title).to eq(b.description.title_info.book_title)
     expect(b2.description.title_info.keywords).to eq(['keyword'])
-    expect(b2.description.title_info.annotation.to_s).to eq(b.description.title_info.annotation)
+    expect(b2.description.title_info.annotation).to match(%r{<empty-line( xmlns=".*")?/>})
     expect(b2.description.title_info.date.value).to eq(b.description.title_info.date.value)
     expect(b2.description.title_info.date.display_value).to eq(b.description.title_info.date.display_value)
     expect(b2.description.title_info.coverpage.images).to eq(b.description.title_info.coverpage.images)
@@ -134,7 +134,7 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
     expect(b2.description.document_info.date.value).to eq(b.description.document_info.date.value)
     expect(b2.description.document_info.src_urls).to eq(b.description.document_info.src_urls)
     expect(b2.description.document_info.version).to eq(b.description.document_info.version)
-    expect(b2.description.document_info.history.to_s).to eq(b.description.document_info.history)
+    expect(b2.description.document_info.history).to match(%r{<empty-line( xmlns=".*")?/>})
 
     a2 = b2.description.document_info.authors[0]
     expect(a2).not_to be_nil
@@ -186,6 +186,6 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
     c2 = b2.description.custom_infos[0]
     expect(c2).not_to be_nil
     expect(c2.info_type).to eq(c.info_type)
-    expect(c2.content.to_s).to eq(c.content)
+    expect(c2.content).to eq(c.content)
   end
 end
