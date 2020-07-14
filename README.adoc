@@ -1,5 +1,5 @@
 = {project-name}
-Marat Radchenko <maarat@slonopotamus.org>
+Marat Radchenko <marat@slonopotamus.org>
 :project-name: FB2rb
 :project-handle: fb2rb
 :slug: slonopotamus/{project-handle}
