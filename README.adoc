@@ -7,7 +7,7 @@ Marat Radchenko <maarat@slonopotamus.org>
 :uri-ci: {uri-project}/actions?query=branch%3Amaster
 :uri-gem: https://rubygems.org/gems/{project-handle}
 
-image:https://img.shields.io/gem/v/{fb2rb}.svg[Latest Release,link={uri-gem}]
+image:https://img.shields.io/gem/v/{project-handle}.svg[Latest Release,link={uri-gem}]
 image:{uri-project}/workflows/CI/badge.svg?branch=master[Build Status,link={uri-ci}]
 
 {project-handle} is a http://gribuser.ru/xml/fictionbook/index.html.en[Fiction Book 2] parser/generator library written in Ruby.
