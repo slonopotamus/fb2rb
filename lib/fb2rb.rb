@@ -13,9 +13,13 @@ module FB2rb
 
   # Holds data of a single FB2 file
   class Book
+    # @return [Array<FB2rb::Stylesheet>]
     attr_accessor(:stylesheets)
+    # @return [FB2rb::Description]
     attr_accessor(:description)
+    # @return [Array<FB2rb::Body>]
     attr_accessor(:bodies)
+    # @return [Array<FB2fb::Binary>]
     attr_accessor(:binaries)
 
     def initialize(description = Description.new, bodies = [], binaries = [], stylesheets = [])
@@ -26,6 +30,7 @@ module FB2rb
     end
 
     # Reads existing FB2 file from an IO object, and creates new Book object.
+    # @return [FB2rb::Book]
     def self.read(filename_or_io)
       Zip::InputStream.open(filename_or_io) do |zis|
         while (entry = zis.get_next_entry)
@@ -44,6 +49,7 @@ module FB2rb
       prefix.nil? ? nil : prefix.sub(/^xmlns:/, '')
     end
 
+    # @return [FB2rb::Book]
     def self.parse(xml, fb2_prefix, xlink_prefix) # rubocop:disable Metrics/MethodLength
       Book.new(
         Description.parse(xml.xpath("/#{fb2_prefix}:FictionBook/#{fb2_prefix}:description"), fb2_prefix, xlink_prefix),
@@ -86,6 +92,7 @@ module FB2rb
     end
 
     # Serializes and returns FB2 as StringIO.
+    # @return [StringIO]
     def to_ios
       Zip::OutputStream.write_buffer do |io|
         write_to_stream(io)
@@ -132,10 +139,15 @@ module FB2rb
 
   # Holds <description> data
   class Description
+    # @return [FB2rb::TitleInfo]
     attr_accessor(:title_info)
+    # @return [FB2rb::TitleInfo, nil]
     attr_accessor(:src_title_info)
+    # @return [FB2rb::DocumentInfo]
     attr_accessor(:document_info)
+    # @return [FB2rb::PublishInfo, nil]
     attr_accessor(:publish_info)
+    # @return [Array<FB2rb::CustomInfo>]
     attr_accessor(:custom_infos)
     # TODO: <output>
 
@@ -151,6 +163,7 @@ module FB2rb
       @custom_infos = custom_infos
     end
 
+    # @return [FB2rb::Description]
     def self.parse(xml, fb2_prefix, xlink_prefix) # rubocop:disable Metrics/MethodLength
       publish_info_xml = xml.at("./#{fb2_prefix}:publish-info")
       src_title_info_xml = xml.at("./#{fb2_prefix}:src-title-info")
@@ -180,7 +193,9 @@ module FB2rb
 
   # Holds <stylesheet> data
   class Stylesheet
+    # @return [String]
     attr_accessor(:type)
+    # @return [String, nil]
     attr_accessor(:content)
 
     def initialize(type = '', content = nil)
@@ -201,7 +216,9 @@ module FB2rb
 
   # Holds <custom-info> data
   class CustomInfo
+    # @return [String]
     attr_accessor(:info_type)
+    # @return [String, nil]
     attr_accessor(:content)
 
     def initialize(info_type = '', content = nil)
@@ -209,6 +226,7 @@ module FB2rb
       @content = content
     end
 
+    # @return [FB2rb::CustomInfo]
     def self.parse(xml)
       CustomInfo.new(xml['info-type'], xml.text)
     end
@@ -222,11 +240,17 @@ module FB2rb
 
   # Holds <publish-info> data
   class PublishInfo
+    # @return [String, nil]
     attr_accessor(:book_name)
+    # @return [String, nil]
     attr_accessor(:publisher)
+    # @return [String, nil]
     attr_accessor(:city)
+    # @return [String, nil]
     attr_accessor(:year)
+    # @return [String, nil]
     attr_accessor(:isbn)
+    # @return [Array<FB2RB::Sequence>]
     attr_accessor(:sequences)
 
     def initialize(book_name = nil, # rubocop:disable Metrics/ParameterLists
@@ -243,6 +267,7 @@ module FB2rb
       @sequences = sequences
     end
 
+    # @return [FB2RB::PublishInfo]
     def self.parse(xml, fb2_prefix)
       PublishInfo.new(
         xml.at("./#{fb2_prefix}:book-name/text()")&.text,
@@ -272,14 +297,23 @@ module FB2rb
 
   # Holds <document-info> data
   class DocumentInfo
+    # @return [Array<FB2rb::Author>]
     attr_accessor(:authors)
+    # @return [String, nil]
     attr_accessor(:program_used)
+    # @return [FB2rb::FB2Date]
     attr_accessor(:date)
+    # @return [Array<String>]
     attr_accessor(:src_urls)
+    # @return [String, nil]
     attr_accessor(:src_ocr)
+    # @return [String]
     attr_accessor(:id)
+    # @return [String]
     attr_accessor(:version)
+    # @return [String, nil]
     attr_accessor(:history)
+    # @return [Array<String>]
     attr_accessor(:publishers)
 
     def initialize(authors = [], # rubocop:disable Metrics/ParameterLists
@@ -302,6 +336,7 @@ module FB2rb
       @publishers = publishers
     end
 
+    # @return [FB2rb::DocumentInfo]
     def self.parse(xml, fb2_prefix) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength
       date = xml.at("./#{fb2_prefix}:date")
       DocumentInfo.new(
@@ -314,11 +349,12 @@ module FB2rb
         xml.at("./#{fb2_prefix}:src-ocr")&.text,
         xml.at("./#{fb2_prefix}:id").text,
         xml.at("./#{fb2_prefix}:version")&.text,
-        xml.at("./#{fb2_prefix}:history")&.children&.to_s&.strip
+        xml.at("./#{fb2_prefix}:history")&.children&.to_s&.strip,
+        xml.xpath("./#{fb2_prefix}:publisher").map(&:text)
       )
     end
 
-    def to_xml(xml) # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
+    def to_xml(xml) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength
       xml.send(:'document-info') do
         @authors.each do |author|
           author.to_xml(xml, 'author')
@@ -336,22 +372,36 @@ module FB2rb
             xml << @history
           end
         end
+        @publishers.each do |publisher|
+          xml.publisher(publisher)
+        end
       end
     end
   end
 
   # Holds <title-info>/<src-title-info> data
   class TitleInfo
+    # @return [Array<String>]
     attr_accessor(:genres)
+    # @return [Array<FB2rb::Author>]
     attr_accessor(:authors)
+    # @return [String]
     attr_accessor(:book_title)
+    # @return [String, nil]
     attr_accessor(:annotation)
+    # @return [Array<String>]
     attr_accessor(:keywords)
+    # @return [String, nil]
     attr_accessor(:date)
+    # @return [FB2rb::Coverpage, nil]
     attr_accessor(:coverpage)
+    # @return [String]
     attr_accessor(:lang)
+    # @return [String, nil]
     attr_accessor(:src_lang)
+    # @return [Array<FB2rb::Author>]
     attr_accessor(:translators)
+    # @return [Array<FB2rb::Sequence>]
     attr_accessor(:sequences)
 
     def initialize(genres = [], # rubocop:disable Metrics/MethodLength, Metrics/ParameterLists
@@ -378,6 +428,7 @@ module FB2rb
       @sequences = sequences
     end
 
+    # @return [FB2rb::TitleInfo]
     def self.parse(xml, fb2_prefix, xlink_prefix) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength
       date = xml.at("./#{fb2_prefix}:date")
       coverpage = xml.at("./#{fb2_prefix}:coverpage")
@@ -433,6 +484,7 @@ module FB2rb
 
   # Holds <coverpage> data
   class Coverpage
+    # @return [Array<String>]
     attr_accessor(:images)
 
     def initialize(images = [])
@@ -456,7 +508,9 @@ module FB2rb
 
   # Holds <date> data
   class FB2Date
+    # @return [String]
     attr_accessor(:display_value)
+    # @return [Date, nil]
     attr_accessor(:value)
 
     def initialize(display_value = '', value = nil)
@@ -481,7 +535,9 @@ module FB2rb
 
   # Holds <sequence> data
   class Sequence
+    # @return [String]
     attr_accessor(:name)
+    # @return [Integer, nil]
     attr_accessor(:number)
 
     def initialize(name = '', number = nil)
@@ -489,6 +545,7 @@ module FB2rb
       @number = number
     end
 
+    # @return [FB2rb::Sequence]
     def self.parse(xml)
       Sequence.new(xml['name'], xml['number']&.to_i)
     end
@@ -502,12 +559,19 @@ module FB2rb
 
   # Holds <author> data
   class Author
+    # @return [String, nil]
     attr_accessor(:first_name)
+    # @return [String, nil]
     attr_accessor(:middle_name)
+    # @return [String, nil]
     attr_accessor(:last_name)
+    # @return [String, nil]
     attr_accessor(:nickname)
+    # @return [Array<String>]
     attr_accessor(:home_pages)
+    # @return [Array<String>]
     attr_accessor(:emails)
+    # @return [String, nil]
     attr_accessor(:id)
 
     def initialize(first_name = nil, # rubocop:disable Metrics/ParameterLists
@@ -526,6 +590,7 @@ module FB2rb
       @id = id
     end
 
+    # @return [FB2rb::Author]
     def self.parse(xml, fb2_prefix) # rubocop:disable Metrics/CyclomaticComplexity
       Author.new(
         xml.at("./#{fb2_prefix}:first-name/text()")&.text,
@@ -557,7 +622,9 @@ module FB2rb
 
   # Holds <body> data
   class Body
+    # @return [String, nil]
     attr_accessor(:name)
+    # @return [String]
     attr_accessor(:content)
 
     def initialize(name = nil, content = '')
@@ -565,6 +632,7 @@ module FB2rb
       @content = content
     end
 
+    # @return [FB2rb::Body]
     def self.parse(xml)
       Body.new(
         xml['name'],
@@ -584,12 +652,15 @@ module FB2rb
 
   # Holds data of a single binary within FB2 file
   class Binary
+    # @return [String]
     attr_accessor(:id)
+    # @return [String]
     attr_accessor(:content)
+    # @return [String, nil]
     attr_accessor(:content_type)
 
-    def initialize(name, content, content_type = nil)
-      @id = name
+    def initialize(id, content, content_type = nil)
+      @id = id
       @content = content
       @content_type = content_type
     end

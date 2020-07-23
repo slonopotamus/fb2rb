@@ -124,6 +124,7 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
     b.description.document_info.src_ocr = '/dev/eyes'
     b.description.document_info.version = '0.1'
     b.description.document_info.history = '<empty-line/>'
+    b.description.document_info.publishers << 'MyPublisher'
 
     io = StringIO.new
     b.write(io)
@@ -135,6 +136,7 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
     expect(b2.description.document_info.src_urls).to eq(b.description.document_info.src_urls)
     expect(b2.description.document_info.version).to eq(b.description.document_info.version)
     expect(b2.description.document_info.history).to match(%r{<empty-line( xmlns=".*")?/>})
+    expect(b2.description.document_info.publishers).to eq(b.description.document_info.publishers)
 
     a2 = b2.description.document_info.authors[0]
     expect(a2).not_to be_nil
