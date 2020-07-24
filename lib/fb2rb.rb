@@ -91,16 +91,8 @@ module FB2rb
       end
     end
 
-    # Serializes and returns FB2 as StringIO.
-    # @return [StringIO]
-    def to_ios
-      Zip::OutputStream.write_buffer do |io|
-        write_to_stream(io)
-      end
-    end
-
     # Writes FB2 to file or IO object. If file exists, it will be overwritten.
-    def write(filename_or_io)
+    def write(filename_or_io = StringIO.new)
       if filename_or_io.respond_to?(:write)
         Zip::OutputStream.write_buffer(filename_or_io) do |zos|
           write_to_zip(zos)
@@ -115,8 +107,14 @@ module FB2rb
     private
 
     def write_to_zip(zos)
+      mod_time = Zip::DOSTime.now
+      unless (tm = description.document_info.date.value).nil?
+        mod_time = Zip::DOSTime.gm(tm.year, tm.month, tm.day)
+      end
+
       # TODO: entry name
-      zos.put_next_entry('book.fb2')
+      mimetype_entry = Zip::Entry.new(nil, 'book.fb2', nil, nil, nil, nil, nil, nil, mod_time)
+      zos.put_next_entry(mimetype_entry, nil, nil, Zip::Entry::DEFLATED)
       write_to_stream(zos)
     end
 

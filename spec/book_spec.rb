@@ -190,4 +190,15 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
     expect(c2.info_type).to eq(c.info_type)
     expect(c2.content).to eq(c.content)
   end
+
+  it 'should produce deterministic output' do
+    b = FB2rb::Book.new
+    b.description.document_info.date.value = Date.new
+
+    io1 = b.write
+    sleep 2
+    io2 = b.write
+
+    expect(io1.string).to eq(io2.string)
+  end
 end
