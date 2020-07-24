@@ -389,7 +389,7 @@ module FB2rb
     attr_accessor(:annotation)
     # @return [Array<String>]
     attr_accessor(:keywords)
-    # @return [String, nil]
+    # @return [FB2rb::Date, nil]
     attr_accessor(:date)
     # @return [FB2rb::Coverpage, nil]
     attr_accessor(:coverpage)
