@@ -7,7 +7,7 @@
 This document provides a high-level view of the changes to the {project-name} by release.
 For a detailed view of what has changed, refer to the {uri-project}/commits/master[commit history] on GitHub.
 
-== Unreleased
+== 0.2.0 (2020-07-24) - @slonopotamus
 
 * Add support for reproducible builds
 * Remove broken `FB2rb::Book.to_ios`.
@@ -15,7 +15,7 @@ Use `FB2rb::Book.write` instead.
 
 == 0.1.1 (2020-07-23) - @slonopotamus
 
-* Annonate field types
+* Annotate field types
 * Fix serialization of `<publisher>` in `<document-info>`
 
 == 0.1.0 (2020-07-23) - @slonopotamus
