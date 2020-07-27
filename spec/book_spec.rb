@@ -9,10 +9,9 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
     stylesheet = FB2rb::Stylesheet.new('text/css', 'p { color: red; }')
     b.stylesheets << stylesheet
 
-    io = StringIO.new
-    b.write(io)
+    io = b.write_compressed
 
-    b2 = FB2rb::Book.read(io)
+    b2 = FB2rb::Book.read_compressed(io)
     stylesheet2 = b2.stylesheets[0]
     expect(stylesheet2).not_to be_nil
     expect(stylesheet2.type).to eq(stylesheet.type)
@@ -25,10 +24,9 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
 
     expect(b.binaries.size).to eq(1)
 
-    io = StringIO.new
-    b.write(io)
+    io = b.write_compressed
 
-    b2 = FB2rb::Book.read(io)
+    b2 = FB2rb::Book.read_compressed(io)
     expect(b2.binaries.size).to eq(1)
   end
 
@@ -37,10 +35,9 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
     body = FB2rb::Body.new('bla', '<p>text</p>')
     b.bodies << body
 
-    io = StringIO.new
-    b.write(io)
+    io = b.write_compressed
 
-    b2 = FB2rb::Book.read(io)
+    b2 = FB2rb::Book.read_compressed(io)
     body2 = b2.bodies[0]
     expect(body2).not_to be_nil
     expect(body2.name).to eq(body.name)
@@ -69,10 +66,9 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
     s = FB2rb::Sequence.new('seq', 42)
     b.description.title_info.sequences << s
 
-    io = StringIO.new
-    b.write(io)
+    io = b.write_compressed
 
-    b2 = FB2rb::Book.read(io)
+    b2 = FB2rb::Book.read_compressed(io)
     expect(b2.description.title_info.genres).to eq(['science'])
     expect(b2.description.title_info.book_title).to eq(b.description.title_info.book_title)
     expect(b2.description.title_info.keywords).to eq(['keyword'])
@@ -126,10 +122,9 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
     b.description.document_info.history = '<empty-line/>'
     b.description.document_info.publishers << 'MyPublisher'
 
-    io = StringIO.new
-    b.write(io)
+    io = b.write_compressed
 
-    b2 = FB2rb::Book.read(io)
+    b2 = FB2rb::Book.read_compressed(io)
     expect(b2.description.document_info.program_used).to eq(b.description.document_info.program_used)
     expect(b2.description.document_info.date.display_value).to eq(b.description.document_info.date.display_value)
     expect(b2.description.document_info.date.value).to eq(b.description.document_info.date.value)
@@ -160,10 +155,9 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
     s = FB2rb::Sequence.new('seq', 42)
     b.description.publish_info.sequences << s
 
-    io = StringIO.new
-    b.write(io)
+    io = b.write_compressed
 
-    b2 = FB2rb::Book.read(io)
+    b2 = FB2rb::Book.read_compressed(io)
     expect(b2.description.publish_info.book_name).to eq(b.description.publish_info.book_name)
     expect(b2.description.publish_info.publisher).to eq(b.description.publish_info.publisher)
     expect(b2.description.publish_info.city).to eq(b.description.publish_info.city)
@@ -181,10 +175,9 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
     c = FB2rb::CustomInfo.new('fb2rb', 'custom data')
     b.description.custom_infos << c
 
-    io = StringIO.new
-    b.write(io)
+    io = b.write_compressed
 
-    b2 = FB2rb::Book.read(io)
+    b2 = FB2rb::Book.read_compressed(io)
     c2 = b2.description.custom_infos[0]
     expect(c2).not_to be_nil
     expect(c2.info_type).to eq(c.info_type)
@@ -195,10 +188,20 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
     b = FB2rb::Book.new
     b.description.document_info.date.value = Date.new
 
-    io1 = b.write
+    io1 = b.write_compressed
     sleep 2
-    io2 = b.write
+    io2 = b.write_compressed
 
     expect(io1.string).to eq(io2.string)
+  end
+
+  it 'can read/write uncompressed FB2 XML' do
+    b = FB2rb::Book.new
+    b.description.title_info.book_title = 'Book'
+    io = b.write_uncompressed
+    io.seek(0)
+    b2 = FB2rb::Book.read_uncompressed(io)
+    expect(b2).not_to be_nil
+    expect(b2.description.title_info.book_title).to eq(b.description.title_info.book_title)
   end
 end
