@@ -37,6 +37,8 @@ $ gem install fb2rb
 
 == Usage
 
+You can create FB2 book in memory and write it to file:
+
 [source,ruby]
 ----
 require 'fb2rb'
@@ -47,7 +49,23 @@ book.description.title_info.book_title = 'Book title'
 body = FB2rb::Body.new(nil, '<p>Book text</p>')
 book.bodies << body
 
-book.write('/path/to/book.fb2.zip')
+book.write_compressed('/path/to/book.fb2.zip')
+# or
+book.write_uncompressed('/path/to/book.fb2')
+----
+
+Also, you can read existing FB2 file:
+
+[source,ruby]
+----
+require 'fb2rb'
+
+book = FB2rb::Book.read_compressed('/path/to/book.fb2.zip')
+# or
+book = FB2rb::Book.read_uncompressed('/path/to/book.fb2')
+
+puts book.description.title_info.book_title
+puts book.bodies[0].content
 ----
 
 == Development

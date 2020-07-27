@@ -7,6 +7,10 @@
 This document provides a high-level view of the changes to the {project-name} by release.
 For a detailed view of what has changed, refer to the {uri-project}/commits/master[commit history] on GitHub.
 
+== Unreleased
+
+* Support reading/writing uncompressed FB2. https://github.com/slonopotamus/fb2rb/issues/5[#5]
+
 == 0.2.1 (2020-07-24) - @slonopotamus
 
 * Fix field annotation on `FB2rb::TitleInfo::date`

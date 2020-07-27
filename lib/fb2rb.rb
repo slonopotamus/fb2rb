@@ -12,7 +12,7 @@ module FB2rb
   XLINK_NAMESPACE = 'http://www.w3.org/1999/xlink'
 
   # Holds data of a single FB2 file
-  class Book
+  class Book # rubocop:disable Metrics/ClassLength
     # @return [Array<FB2rb::Stylesheet>]
     attr_accessor(:stylesheets)
     # @return [FB2rb::Description]
@@ -29,40 +29,65 @@ module FB2rb
       @stylesheets = stylesheets
     end
 
-    # Reads existing FB2 file from an IO object, and creates new Book object.
-    # @return [FB2rb::Book]
-    def self.read(filename_or_io)
-      Zip::InputStream.open(filename_or_io) do |zis|
-        while (entry = zis.get_next_entry)
-          next if entry.directory?
+    class << self
+      # Reads existing compressed FB2 file from an IO object, and creates new Book object.
+      # @return [FB2rb::Book, nil]
+      def read_compressed(filename_or_io)
+        Zip::InputStream.open(filename_or_io) do |zis|
+          while (entry = zis.get_next_entry)
+            next if entry.directory?
 
-          xml = Nokogiri::XML::Document.parse(zis)
-          fb2_prefix = ns_prefix(FB2rb::FB2_NAMESPACE, xml.namespaces)
-          xlink_prefix = ns_prefix(FB2rb::XLINK_NAMESPACE, xml.namespaces)
-          return parse(xml, fb2_prefix, xlink_prefix)
+            xml = Nokogiri::XML::Document.parse(zis)
+            fb2_prefix = ns_prefix(FB2rb::FB2_NAMESPACE, xml.namespaces)
+            xlink_prefix = ns_prefix(FB2rb::XLINK_NAMESPACE, xml.namespaces)
+            return parse(xml, fb2_prefix, xlink_prefix)
+          end
         end
       end
-    end
 
-    def self.ns_prefix(namespace, namespaces)
-      prefix = namespaces.key(namespace)
-      prefix.nil? ? nil : prefix.sub(/^xmlns:/, '')
-    end
+      # Reads existing uncompressed FB2 file from an IO object, and creates new Book object.
+      # @return [FB2rb::Book]
+      def read_uncompressed(filename_or_io)
+        xml = read_xml(filename_or_io)
+        fb2_prefix = ns_prefix(FB2rb::FB2_NAMESPACE, xml.namespaces)
+        xlink_prefix = ns_prefix(FB2rb::XLINK_NAMESPACE, xml.namespaces)
+        parse(xml, fb2_prefix, xlink_prefix)
+      end
 
-    # @return [FB2rb::Book]
-    def self.parse(xml, fb2_prefix, xlink_prefix) # rubocop:disable Metrics/MethodLength
-      Book.new(
-        Description.parse(xml.xpath("/#{fb2_prefix}:FictionBook/#{fb2_prefix}:description"), fb2_prefix, xlink_prefix),
-        xml.xpath("/#{fb2_prefix}:FictionBook/#{fb2_prefix}:body").map do |node|
-          Body.parse(node)
-        end,
-        xml.xpath("#{fb2_prefix}:FictionBook/#{fb2_prefix}:binary").map do |node|
-          Binary.parse(node)
-        end,
-        xml.xpath("/#{fb2_prefix}:FictionBook/#{fb2_prefix}:stylesheet").map do |node|
-          Stylesheet.parse(node)
+      def ns_prefix(namespace, namespaces)
+        prefix = namespaces.key(namespace)
+        prefix.nil? ? nil : prefix.sub(/^xmlns:/, '')
+      end
+
+      private
+
+      # @return [FB2rb::Book]
+      def parse(xml, fb2_prefix, xlink_prefix) # rubocop:disable Metrics/MethodLength
+        Book.new(
+          Description.parse(
+            xml.xpath("/#{fb2_prefix}:FictionBook/#{fb2_prefix}:description"), fb2_prefix, xlink_prefix
+          ),
+          xml.xpath("/#{fb2_prefix}:FictionBook/#{fb2_prefix}:body").map do |node|
+            Body.parse(node)
+          end,
+          xml.xpath("#{fb2_prefix}:FictionBook/#{fb2_prefix}:binary").map do |node|
+            Binary.parse(node)
+          end,
+          xml.xpath("/#{fb2_prefix}:FictionBook/#{fb2_prefix}:stylesheet").map do |node|
+            Stylesheet.parse(node)
+          end
+        )
+      end
+
+      def read_xml(filename_or_io)
+        if filename_or_io.respond_to? :read
+          Nokogiri::XML::Document.parse(filename_or_io)
+        else
+          File.open(filename_or_io, 'rb') do |io|
+            return Nokogiri::XML::Document.parse(io)
+          end
         end
-      )
+      end
     end
 
     def to_xml(xml) # rubocop:disable Metrics/MethodLength
@@ -91,8 +116,8 @@ module FB2rb
       end
     end
 
-    # Writes FB2 to file or IO object. If file exists, it will be overwritten.
-    def write(filename_or_io = StringIO.new)
+    # Writes compressed FB2 to file or IO object. If file exists, it will be overwritten.
+    def write_compressed(filename_or_io = StringIO.new)
       if filename_or_io.respond_to?(:write)
         Zip::OutputStream.write_buffer(filename_or_io) do |zos|
           write_to_zip(zos)
@@ -102,6 +127,22 @@ module FB2rb
           write_to_zip(zos)
         end
       end
+    end
+
+    # Writes FB2 (uncompressed) to file or IO object specified by the argument.
+    def write_uncompressed(filename_or_io = StringIO.new) # rubocop:disable Metrics/MethodLength
+      data = (Nokogiri::XML::Builder.new(encoding: 'UTF-8') do |xml|
+        to_xml(xml)
+      end).to_xml
+
+      if filename_or_io.respond_to?(:write)
+        filename_or_io.write(data)
+      else
+        File.open(filename_or_io, 'wb') do |io|
+          io.write(data)
+        end
+      end
+      filename_or_io
     end
 
     private
@@ -115,7 +156,7 @@ module FB2rb
       # TODO: entry name
       mimetype_entry = Zip::Entry.new(nil, 'book.fb2', nil, nil, nil, nil, nil, nil, mod_time)
       zos.put_next_entry(mimetype_entry, nil, nil, Zip::Entry::DEFLATED)
-      write_to_stream(zos)
+      write_uncompressed(zos)
     end
 
     def add_binary_io(name, io, content_type = nil)
@@ -123,15 +164,6 @@ module FB2rb
       content = io.read
       @binaries << Binary.new(name, content, content_type)
       self
-    end
-
-    # Writes FB2 (uncompressed) to stream specified by the argument.
-    def write_to_stream(io)
-      builder = Nokogiri::XML::Builder.new(encoding: 'UTF-8') do |xml|
-        to_xml(xml)
-      end
-      xml = builder.to_xml
-      io.write(xml)
     end
   end
 
