@@ -367,7 +367,7 @@ module FB2rb
     end
 
     # @return [FB2rb::DocumentInfo]
-    def self.parse(xml, fb2_prefix) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength
+    def self.parse(xml, fb2_prefix) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
       date = xml.at("./#{fb2_prefix}:date")
       DocumentInfo.new(
         xml.xpath("./#{fb2_prefix}:author").map do |node|
@@ -459,7 +459,7 @@ module FB2rb
     end
 
     # @return [FB2rb::TitleInfo]
-    def self.parse(xml, fb2_prefix, xlink_prefix) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength
+    def self.parse(xml, fb2_prefix, xlink_prefix) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
       date = xml.at("./#{fb2_prefix}:date")
       coverpage = xml.at("./#{fb2_prefix}:coverpage")
       TitleInfo.new(
@@ -483,7 +483,7 @@ module FB2rb
       )
     end
 
-    def to_xml(xml, tag) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength
+    def to_xml(xml, tag) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
       xml.send(tag) do
         genres.each do |genre|
           xml.genre(genre)
@@ -633,7 +633,7 @@ module FB2rb
       )
     end
 
-    def to_xml(xml, tag) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength
+    def to_xml(xml, tag) # rubocop:disable Metrics/CyclomaticComplexity, Metrics/MethodLength
       xml.send(tag) do
         xml.send('first-name', @first_name) unless @first_name.nil?
         xml.send('middle-name', @middle_name) unless @middle_name.nil?
