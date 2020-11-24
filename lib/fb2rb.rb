@@ -116,6 +116,16 @@ module FB2rb
       end
     end
 
+    def add_stylesheet(content_type, filename_or_io)
+      if filename_or_io.respond_to?(:read)
+        add_stylesheet_io(content_type, filename_or_io)
+      else
+        File.open(filename_or_io, 'r') do |io|
+          add_stylesheet_io(content_type, io)
+        end
+      end
+    end
+
     # Writes compressed FB2 to file or IO object. If file exists, it will be overwritten.
     def write_compressed(filename_or_io = StringIO.new)
       if filename_or_io.respond_to?(:write)
@@ -163,6 +173,13 @@ module FB2rb
       io.binmode
       content = io.read
       @binaries << Binary.new(name, content, content_type)
+      self
+    end
+
+    def add_stylesheet_io(content_type, io)
+      io.binmode
+      content = io.read
+      @stylesheets << Stylesheet.new(content_type, content)
       self
     end
   end

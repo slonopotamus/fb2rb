@@ -6,16 +6,17 @@ require 'spec_helper'
 describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
   it 'has stylesheets' do
     b = FB2rb::Book.new
-    stylesheet = FB2rb::Stylesheet.new('text/css', 'p { color: red; }')
-    b.stylesheets << stylesheet
+    type = 'text/css'
+    content = StringIO.new('p { color: red; }')
+    b.add_stylesheet(type, content)
 
     io = b.write_compressed
 
     b2 = FB2rb::Book.read_compressed(io)
     stylesheet2 = b2.stylesheets[0]
     expect(stylesheet2).not_to be_nil
-    expect(stylesheet2.type).to eq(stylesheet.type)
-    expect(stylesheet2.content).to eq(stylesheet.content)
+    expect(stylesheet2.type).to eq(type)
+    expect(stylesheet2.content).to eq(content.string)
   end
 
   it 'has binaries' do

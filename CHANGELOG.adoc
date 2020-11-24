@@ -7,6 +7,10 @@
 This document provides a high-level view of the changes to the {project-name} by release.
 For a detailed view of what has changed, refer to the {uri-project}/commits/master[commit history] on GitHub.
 
+== Unreleased
+
+* add `Book::add_stylesheet` method
+
 == 0.3.0 (2020-07-27) - @slonopotamus
 
 * Support reading/writing uncompressed FB2. https://github.com/slonopotamus/fb2rb/issues/5[#5]
