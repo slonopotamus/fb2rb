@@ -196,6 +196,7 @@ module FB2rb
     attr_accessor(:publish_info)
     # @return [Array<FB2rb::CustomInfo>]
     attr_accessor(:custom_infos)
+
     # TODO: <output>
 
     def initialize(title_info = TitleInfo.new,
