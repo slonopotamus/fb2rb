@@ -43,6 +43,7 @@ module FB2rb
             return parse(xml, fb2_prefix, xlink_prefix)
           end
         end
+        nil
       end
 
       # Reads existing uncompressed FB2 file from an IO object, and creates new Book object.
