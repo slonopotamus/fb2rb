@@ -7,7 +7,7 @@
 This document provides a high-level view of the changes to the {project-name} by release.
 For a detailed view of what has changed, refer to the {uri-project}/commits/master[commit history] on GitHub.
 
-== Unreleased
+== 0.5.0 (2020-12-07) - @slonopotamus
 
 * return `nil` from `FB2rb::Book.read_compressed` for empty ZIP files
 * **breaking change**: switch to named parameters instead of optional
