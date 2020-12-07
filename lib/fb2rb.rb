@@ -22,7 +22,7 @@ module FB2rb
     # @return [Array<FB2fb::Binary>]
     attr_accessor(:binaries)
 
-    def initialize(description = Description.new, bodies = [], binaries = [], stylesheets = [])
+    def initialize(description: Description.new, bodies: [], binaries: [], stylesheets: [])
       @binaries = binaries
       @bodies = bodies
       @description = description
@@ -65,16 +65,16 @@ module FB2rb
       # @return [FB2rb::Book]
       def parse(xml, fb2_prefix, xlink_prefix) # rubocop:disable Metrics/MethodLength
         Book.new(
-          Description.parse(
+          description: Description.parse(
             xml.xpath("/#{fb2_prefix}:FictionBook/#{fb2_prefix}:description"), fb2_prefix, xlink_prefix
           ),
-          xml.xpath("/#{fb2_prefix}:FictionBook/#{fb2_prefix}:body").map do |node|
+          bodies: xml.xpath("/#{fb2_prefix}:FictionBook/#{fb2_prefix}:body").map do |node|
             Body.parse(node)
           end,
-          xml.xpath("#{fb2_prefix}:FictionBook/#{fb2_prefix}:binary").map do |node|
+          binaries: xml.xpath("#{fb2_prefix}:FictionBook/#{fb2_prefix}:binary").map do |node|
             Binary.parse(node)
           end,
-          xml.xpath("/#{fb2_prefix}:FictionBook/#{fb2_prefix}:stylesheet").map do |node|
+          stylesheets: xml.xpath("/#{fb2_prefix}:FictionBook/#{fb2_prefix}:stylesheet").map do |node|
             Stylesheet.parse(node)
           end
         )
@@ -107,12 +107,12 @@ module FB2rb
       end
     end
 
-    def add_binary(name, filename_or_io, content_type = nil)
+    def add_binary(id, filename_or_io, content_type = nil)
       if filename_or_io.respond_to?(:read)
-        add_binary_io name, filename_or_io, content_type
+        add_binary_io id, filename_or_io, content_type
       else
         File.open(filename_or_io, 'r') do |io|
-          add_binary_io name, io, content_type
+          add_binary_io id, io, content_type
         end
       end
     end
@@ -170,17 +170,17 @@ module FB2rb
       write_uncompressed(zos)
     end
 
-    def add_binary_io(name, io, content_type = nil)
+    def add_binary_io(id, io, content_type = nil)
       io.binmode
       content = io.read
-      @binaries << Binary.new(name, content, content_type)
+      @binaries << Binary.new(id: id, content: content, content_type: content_type)
       self
     end
 
     def add_stylesheet_io(content_type, io)
       io.binmode
       content = io.read
-      @stylesheets << Stylesheet.new(content_type, content)
+      @stylesheets << Stylesheet.new(content_type: content_type, content: content)
       self
     end
   end
@@ -200,11 +200,11 @@ module FB2rb
 
     # TODO: <output>
 
-    def initialize(title_info = TitleInfo.new,
-                   document_info = DocumentInfo.new,
-                   publish_info = nil,
-                   src_title_info = nil,
-                   custom_infos = [])
+    def initialize(title_info: TitleInfo.new,
+                   document_info: DocumentInfo.new,
+                   publish_info: nil,
+                   src_title_info: nil,
+                   custom_infos: [])
       @title_info = title_info
       @document_info = document_info
       @publish_info = publish_info
@@ -217,11 +217,11 @@ module FB2rb
       publish_info_xml = xml.at("./#{fb2_prefix}:publish-info")
       src_title_info_xml = xml.at("./#{fb2_prefix}:src-title-info")
       Description.new(
-        TitleInfo.parse(xml.at("./#{fb2_prefix}:title-info"), fb2_prefix, xlink_prefix),
-        DocumentInfo.parse(xml.at("./#{fb2_prefix}:document-info"), fb2_prefix),
-        publish_info_xml.nil? ? nil : PublishInfo.parse(publish_info_xml, fb2_prefix),
-        src_title_info_xml.nil? ? nil : TitleInfo.parse(src_title_info_xml, fb2_prefix, xlink_prefix),
-        xml.xpath("./#{fb2_prefix}:custom-info").map do |node|
+        title_info: TitleInfo.parse(xml.at("./#{fb2_prefix}:title-info"), fb2_prefix, xlink_prefix),
+        document_info: DocumentInfo.parse(xml.at("./#{fb2_prefix}:document-info"), fb2_prefix),
+        publish_info: publish_info_xml.nil? ? nil : PublishInfo.parse(publish_info_xml, fb2_prefix),
+        src_title_info: src_title_info_xml.nil? ? nil : TitleInfo.parse(src_title_info_xml, fb2_prefix, xlink_prefix),
+        custom_infos: xml.xpath("./#{fb2_prefix}:custom-info").map do |node|
           CustomInfo.parse(node)
         end
       )
@@ -243,47 +243,47 @@ module FB2rb
   # Holds <stylesheet> data
   class Stylesheet
     # @return [String]
-    attr_accessor(:type)
+    attr_accessor(:content_type)
     # @return [String, nil]
     attr_accessor(:content)
 
-    def initialize(type = '', content = nil)
-      @type = type
+    def initialize(content_type: '', content: nil)
+      @content_type = content_type
       @content = content
     end
 
     def self.parse(xml)
-      Stylesheet.new(xml['type'], xml.text)
+      Stylesheet.new(content_type: xml['type'], content: xml.text)
     end
 
     def to_xml(xml)
       return if @content.nil?
 
-      xml.send('stylesheet', @content, 'type' => @type)
+      xml.send('stylesheet', @content, 'type' => @content_type)
     end
   end
 
   # Holds <custom-info> data
   class CustomInfo
     # @return [String]
-    attr_accessor(:info_type)
+    attr_accessor(:type)
     # @return [String, nil]
     attr_accessor(:content)
 
-    def initialize(info_type = '', content = nil)
-      @info_type = info_type
+    def initialize(type: '', content: nil)
+      @type = type
       @content = content
     end
 
     # @return [FB2rb::CustomInfo]
     def self.parse(xml)
-      CustomInfo.new(xml['info-type'], xml.text)
+      CustomInfo.new(type: xml['info-type'], content: xml.text)
     end
 
     def to_xml(xml)
       return if @content.nil?
 
-      xml.send('custom-info', @content, 'info-type' => @info_type)
+      xml.send('custom-info', @content, 'info-type' => @type)
     end
   end
 
@@ -302,12 +302,12 @@ module FB2rb
     # @return [Array<FB2RB::Sequence>]
     attr_accessor(:sequences)
 
-    def initialize(book_name = nil, # rubocop:disable Metrics/ParameterLists
-                   publisher = nil,
-                   city = nil,
-                   year = nil,
-                   isbn = nil,
-                   sequences = [])
+    def initialize(book_name: nil, # rubocop:disable Metrics/ParameterLists
+                   publisher: nil,
+                   city: nil,
+                   year: nil,
+                   isbn: nil,
+                   sequences: [])
       @book_name = book_name
       @publisher = publisher
       @city = city
@@ -319,12 +319,12 @@ module FB2rb
     # @return [FB2RB::PublishInfo]
     def self.parse(xml, fb2_prefix)
       PublishInfo.new(
-        xml.at("./#{fb2_prefix}:book-name/text()")&.text,
-        xml.at("./#{fb2_prefix}:publisher/text()")&.text,
-        xml.at("./#{fb2_prefix}:city/text()")&.text,
-        xml.at("./#{fb2_prefix}:year/text()")&.text,
-        xml.at("./#{fb2_prefix}:isbn/text()")&.text,
-        xml.xpath("./#{fb2_prefix}:sequence").map do |node|
+        book_name: xml.at("./#{fb2_prefix}:book-name/text()")&.text,
+        publisher: xml.at("./#{fb2_prefix}:publisher/text()")&.text,
+        city: xml.at("./#{fb2_prefix}:city/text()")&.text,
+        year: xml.at("./#{fb2_prefix}:year/text()")&.text,
+        isbn: xml.at("./#{fb2_prefix}:isbn/text()")&.text,
+        sequences: xml.xpath("./#{fb2_prefix}:sequence").map do |node|
           Sequence.parse(node)
         end
       )
@@ -365,15 +365,15 @@ module FB2rb
     # @return [Array<String>]
     attr_accessor(:publishers)
 
-    def initialize(authors = [], # rubocop:disable Metrics/ParameterLists
-                   program_used = nil,
-                   date = FB2Date.new,
-                   src_urls = [],
-                   src_ocr = nil,
-                   id = '',
-                   version = '',
-                   history = nil,
-                   publishers = [])
+    def initialize(authors: [], # rubocop:disable Metrics/ParameterLists
+                   program_used: nil,
+                   date: FB2Date.new,
+                   src_urls: [],
+                   src_ocr: nil,
+                   id: '',
+                   version: '',
+                   history: nil,
+                   publishers: [])
       @authors = authors
       @program_used = program_used
       @date = date
@@ -389,17 +389,17 @@ module FB2rb
     def self.parse(xml, fb2_prefix) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
       date = xml.at("./#{fb2_prefix}:date")
       DocumentInfo.new(
-        xml.xpath("./#{fb2_prefix}:author").map do |node|
+        authors: xml.xpath("./#{fb2_prefix}:author").map do |node|
           Author.parse(node, fb2_prefix)
         end,
-        xml.at("./#{fb2_prefix}:program-used")&.text,
-        date.nil? ? FB2Date.new : FB2Date.parse(date),
-        xml.xpath("./#{fb2_prefix}:src-url").map(&:text),
-        xml.at("./#{fb2_prefix}:src-ocr")&.text,
-        xml.at("./#{fb2_prefix}:id").text,
-        xml.at("./#{fb2_prefix}:version")&.text,
-        xml.at("./#{fb2_prefix}:history")&.children&.to_s&.strip,
-        xml.xpath("./#{fb2_prefix}:publisher").map(&:text)
+        program_used: xml.at("./#{fb2_prefix}:program-used")&.text,
+        date: date.nil? ? FB2Date.new : FB2Date.parse(date),
+        src_urls: xml.xpath("./#{fb2_prefix}:src-url").map(&:text),
+        src_ocr: xml.at("./#{fb2_prefix}:src-ocr")&.text,
+        id: xml.at("./#{fb2_prefix}:id").text,
+        version: xml.at("./#{fb2_prefix}:version")&.text,
+        history: xml.at("./#{fb2_prefix}:history")&.children&.to_s&.strip,
+        publishers: xml.xpath("./#{fb2_prefix}:publisher").map(&:text)
       )
     end
 
@@ -453,17 +453,17 @@ module FB2rb
     # @return [Array<FB2rb::Sequence>]
     attr_accessor(:sequences)
 
-    def initialize(genres = [], # rubocop:disable Metrics/MethodLength, Metrics/ParameterLists
-                   authors = [],
-                   book_title = '',
-                   annotation = nil,
-                   keywords = [],
-                   date = nil,
-                   coverpage = nil,
-                   lang = 'en',
-                   src_lang = nil,
-                   translators = [],
-                   sequences = [])
+    def initialize(genres: [], # rubocop:disable Metrics/MethodLength, Metrics/ParameterLists
+                   authors: [],
+                   book_title: '',
+                   annotation: nil,
+                   keywords: [],
+                   date: nil,
+                   coverpage: nil,
+                   lang: 'en',
+                   src_lang: nil,
+                   translators: [],
+                   sequences: [])
       @genres = genres
       @authors = authors
       @book_title = book_title
@@ -482,21 +482,21 @@ module FB2rb
       date = xml.at("./#{fb2_prefix}:date")
       coverpage = xml.at("./#{fb2_prefix}:coverpage")
       TitleInfo.new(
-        xml.xpath("./#{fb2_prefix}:genre/text()").map(&:text),
-        xml.xpath("./#{fb2_prefix}:author").map do |node|
+        genres: xml.xpath("./#{fb2_prefix}:genre/text()").map(&:text),
+        authors: xml.xpath("./#{fb2_prefix}:author").map do |node|
           Author.parse(node, fb2_prefix)
         end,
-        xml.at("./#{fb2_prefix}:book-title/text()")&.text,
-        xml.at("./#{fb2_prefix}:annotation")&.children.to_s.strip,
-        xml.at("./#{fb2_prefix}:keywords/text()")&.text&.split(', ') || [],
-        date.nil? ? nil : FB2Date.parse(date),
-        coverpage.nil? ? nil : Coverpage.parse(coverpage, fb2_prefix, xlink_prefix),
-        xml.at("./#{fb2_prefix}:lang/text()").text,
-        xml.at("./#{fb2_prefix}:src-lang/text()")&.text,
-        xml.xpath("./#{fb2_prefix}:translator").map do |node|
+        book_title: xml.at("./#{fb2_prefix}:book-title/text()")&.text,
+        annotation: xml.at("./#{fb2_prefix}:annotation")&.children.to_s.strip,
+        keywords: xml.at("./#{fb2_prefix}:keywords/text()")&.text&.split(', ') || [],
+        date: date.nil? ? nil : FB2Date.parse(date),
+        coverpage: coverpage.nil? ? nil : Coverpage.parse(coverpage, fb2_prefix, xlink_prefix),
+        lang: xml.at("./#{fb2_prefix}:lang/text()").text,
+        src_lang: xml.at("./#{fb2_prefix}:src-lang/text()")&.text,
+        translators: xml.xpath("./#{fb2_prefix}:translator").map do |node|
           Author.parse(node, fb2_prefix)
         end,
-        xml.xpath("./#{fb2_prefix}:sequence").map do |node|
+        sequences: xml.xpath("./#{fb2_prefix}:sequence").map do |node|
           Sequence.parse(node)
         end
       )
@@ -536,13 +536,13 @@ module FB2rb
     # @return [Array<String>]
     attr_accessor(:images)
 
-    def initialize(images = [])
+    def initialize(images: [])
       @images = images
     end
 
     def self.parse(xml, fb2_prefix, xlink_prefix)
       Coverpage.new(
-        xml.xpath("./#{fb2_prefix}:image/@#{xlink_prefix}:href").map(&:to_s)
+        images: xml.xpath("./#{fb2_prefix}:image/@#{xlink_prefix}:href").map(&:to_s)
       )
     end
 
@@ -562,7 +562,7 @@ module FB2rb
     # @return [Date, nil]
     attr_accessor(:value)
 
-    def initialize(display_value = '', value = nil)
+    def initialize(display_value: '', value: nil)
       @display_value = display_value
       @value = value
     end
@@ -570,8 +570,8 @@ module FB2rb
     def self.parse(xml)
       value = xml['value']
       FB2Date.new(
-        xml.at('./text()')&.text || '',
-        value.nil? ? nil : Date.parse(value)
+        display_value: xml.at('./text()')&.text || '',
+        value: value.nil? ? nil : Date.parse(value)
       )
     end
 
@@ -589,14 +589,14 @@ module FB2rb
     # @return [Integer, nil]
     attr_accessor(:number)
 
-    def initialize(name = '', number = nil)
+    def initialize(name: '', number: nil)
       @name = name
       @number = number
     end
 
     # @return [FB2rb::Sequence]
     def self.parse(xml)
-      Sequence.new(xml['name'], xml['number']&.to_i)
+      Sequence.new(name: xml['name'], number: xml['number']&.to_i)
     end
 
     def to_xml(xml)
@@ -623,13 +623,13 @@ module FB2rb
     # @return [String, nil]
     attr_accessor(:id)
 
-    def initialize(first_name = nil, # rubocop:disable Metrics/ParameterLists
-                   middle_name = nil,
-                   last_name = nil,
-                   nickname = nil,
-                   home_pages = [],
-                   emails = [],
-                   id = nil)
+    def initialize(first_name: nil, # rubocop:disable Metrics/ParameterLists
+                   middle_name: nil,
+                   last_name: nil,
+                   nickname: nil,
+                   home_pages: [],
+                   emails: [],
+                   id: nil)
       @first_name = first_name
       @middle_name = middle_name
       @last_name = last_name
@@ -642,13 +642,13 @@ module FB2rb
     # @return [FB2rb::Author]
     def self.parse(xml, fb2_prefix) # rubocop:disable Metrics/CyclomaticComplexity
       Author.new(
-        xml.at("./#{fb2_prefix}:first-name/text()")&.text,
-        xml.at("./#{fb2_prefix}:middle-name/text()")&.text,
-        xml.at("./#{fb2_prefix}:last-name/text()")&.text,
-        xml.at("./#{fb2_prefix}:nickname/text()")&.text,
-        xml.xpath("./#{fb2_prefix}:home-page/text()").map(&:text),
-        xml.xpath("./#{fb2_prefix}:email/text()").map(&:text),
-        xml.at("./#{fb2_prefix}:id/text()")&.text
+        first_name: xml.at("./#{fb2_prefix}:first-name/text()")&.text,
+        middle_name: xml.at("./#{fb2_prefix}:middle-name/text()")&.text,
+        last_name: xml.at("./#{fb2_prefix}:last-name/text()")&.text,
+        nickname: xml.at("./#{fb2_prefix}:nickname/text()")&.text,
+        home_pages: xml.xpath("./#{fb2_prefix}:home-page/text()").map(&:text),
+        emails: xml.xpath("./#{fb2_prefix}:email/text()").map(&:text),
+        id: xml.at("./#{fb2_prefix}:id/text()")&.text
       )
     end
 
@@ -676,7 +676,7 @@ module FB2rb
     # @return [String]
     attr_accessor(:content)
 
-    def initialize(name = nil, content = '')
+    def initialize(name: nil, content: '')
       @name = name
       @content = content
     end
@@ -684,8 +684,8 @@ module FB2rb
     # @return [FB2rb::Body]
     def self.parse(xml)
       Body.new(
-        xml['name'],
-        xml.children.to_s.strip
+        name: xml['name'],
+        content: xml.children.to_s.strip
       )
     end
 
@@ -708,7 +708,7 @@ module FB2rb
     # @return [String, nil]
     attr_accessor(:content_type)
 
-    def initialize(id, content, content_type = nil)
+    def initialize(id: nil, content: ''.b, content_type: nil)
       @id = id
       @content = content
       @content_type = content_type
@@ -716,7 +716,7 @@ module FB2rb
 
     def self.parse(xml)
       decoded = Base64.decode64(xml.text)
-      Binary.new(xml['id'], decoded, xml['content-type'])
+      Binary.new(id: xml['id'], content: decoded, content_type: xml['content-type'])
     end
 
     def to_xml(xml)

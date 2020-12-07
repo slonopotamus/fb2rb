@@ -15,7 +15,7 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
     b2 = FB2rb::Book.read_compressed(io)
     stylesheet2 = b2.stylesheets[0]
     expect(stylesheet2).not_to be_nil
-    expect(stylesheet2.type).to eq(type)
+    expect(stylesheet2.content_type).to eq(type)
     expect(stylesheet2.content).to eq(content.string)
   end
 
@@ -33,7 +33,7 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
 
   it 'has bodies' do
     b = FB2rb::Book.new
-    body = FB2rb::Body.new('bla', '<p>text</p>')
+    body = FB2rb::Body.new(name: 'bla', content: '<p>text</p>')
     b.bodies << body
 
     io = b.write_compressed
@@ -51,20 +51,20 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
     b.description.title_info.book_title = 'Bla'
     b.description.title_info.annotation = '<empty-line/>'
     b.description.title_info.keywords << 'keyword'
-    b.description.title_info.date = FB2rb::FB2Date.new('12 July 2020', Date.parse('2020-07-12'))
-    b.description.title_info.coverpage = FB2rb::Coverpage.new(['foo.png'])
+    b.description.title_info.date = FB2rb::FB2Date.new(display_value: '12 July 2020', value: Date.parse('2020-07-12'))
+    b.description.title_info.coverpage = FB2rb::Coverpage.new(images: ['foo.png'])
     a = FB2rb::Author.new(
-      'Marat',
-      'Spartakovich',
-      'Radchenko',
-      'Slonopotamus',
-      ['https://slonopotamus.org'],
-      ['marat@slonopotamus.org'],
-      'slonopotamus'
+      first_name: 'Marat',
+      middle_name: 'Spartakovich',
+      last_name: 'Radchenko',
+      nickname: 'Slonopotamus',
+      home_pages: ['https://slonopotamus.org'],
+      emails: ['marat@slonopotamus.org'],
+      id: 'slonopotamus'
     )
     b.description.title_info.authors << a
     b.description.title_info.translators << a
-    s = FB2rb::Sequence.new('seq', 42)
+    s = FB2rb::Sequence.new(name: 'seq', number: 42)
     b.description.title_info.sequences << s
 
     io = b.write_compressed
@@ -106,17 +106,20 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
   it 'has document info' do # rubocop:disable Metrics/BlockLength
     b = FB2rb::Book.new
     a = FB2rb::Author.new(
-      'Marat',
-      'Spartakovich',
-      'Radchenko',
-      'Slonopotamus',
-      ['https://slonopotamus.org'],
-      ['marat@slonopotamus.org'],
-      'slonopotamus'
+      first_name: 'Marat',
+      middle_name: 'Spartakovich',
+      last_name: 'Radchenko',
+      nickname: 'Slonopotamus',
+      home_pages: ['https://slonopotamus.org'],
+      emails: ['marat@slonopotamus.org'],
+      id: 'slonopotamus'
     )
     b.description.document_info.authors << a
     b.description.document_info.program_used = '/dev/hands'
-    b.description.document_info.date = FB2rb::FB2Date.new('12 July 2020', Date.parse('2020-07-12'))
+    b.description.document_info.date = FB2rb::FB2Date.new(
+      display_value: '12 July 2020',
+      value: Date.parse('2020-07-12')
+    )
     b.description.document_info.src_urls << 'https://slonopotamus.org'
     b.description.document_info.src_ocr = '/dev/eyes'
     b.description.document_info.version = '0.1'
@@ -153,7 +156,7 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
     b.description.publish_info.city = 'Moscow'
     b.description.publish_info.year = '2020'
     b.description.publish_info.isbn = '12345'
-    s = FB2rb::Sequence.new('seq', 42)
+    s = FB2rb::Sequence.new(name: 'seq', number: 42)
     b.description.publish_info.sequences << s
 
     io = b.write_compressed
@@ -173,7 +176,7 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
 
   it 'has custom info' do
     b = FB2rb::Book.new
-    c = FB2rb::CustomInfo.new('fb2rb', 'custom data')
+    c = FB2rb::CustomInfo.new(type: 'fb2rb', content: 'custom data')
     b.description.custom_infos << c
 
     io = b.write_compressed
@@ -181,7 +184,7 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
     b2 = FB2rb::Book.read_compressed(io)
     c2 = b2.description.custom_infos[0]
     expect(c2).not_to be_nil
-    expect(c2.info_type).to eq(c.info_type)
+    expect(c2.type).to eq(c.type)
     expect(c2.content).to eq(c.content)
   end
 
