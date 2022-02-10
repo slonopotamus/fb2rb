@@ -22,7 +22,7 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'rubyzip', '~> 2.3.0'
 
   s.add_development_dependency 'rake', '~> 13.0.0'
-  s.add_development_dependency 'rspec', '~> 3.10.0'
+  s.add_development_dependency 'rspec', '~> 3.11.0'
   s.add_development_dependency 'rubocop', '~> 1.12.1'
   s.add_development_dependency 'rubocop-rake', '~> 0.5.0'
   s.add_development_dependency 'rubocop-rspec', '~> 2.2.0'
