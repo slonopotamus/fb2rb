@@ -18,14 +18,16 @@ jobs:
       matrix:
         # Test oldest and newest supported versions
         ruby: ['jruby-9.2', 'jruby-9.4', '2.5', '3.1']
-        os: [ubuntu-latest, windows-latest]
-        include:
-          - ruby: '3.1'
-            os: macos-latest
+        os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'adopt'
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
