@@ -57,7 +57,7 @@ module FB2rb
 
       def ns_prefix(namespace, namespaces)
         prefix = namespaces.key(namespace)
-        prefix.nil? ? nil : prefix.sub(/^xmlns:/, '')
+        prefix&.sub(/^xmlns:/, '')
       end
 
       private
