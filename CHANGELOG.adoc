@@ -7,6 +7,11 @@
 This document provides a high-level view of the changes to the {project-name} by release.
 For a detailed view of what has changed, refer to the {uri-project}/commits/master[commit history] on GitHub.
 
+== Unreleased
+
+* Add dependency on base64 to fix Ruby 3.4 compatibility
+* Bump minimal required Ruby version to 2.6
+
 == 0.8.0 (2023-05-03) @slonopotamus
 
 * Allow Nokogiri 1.x
