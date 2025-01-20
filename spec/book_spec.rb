@@ -3,16 +3,16 @@
 require 'date'
 require 'spec_helper'
 
-describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
+describe FB2rb::Book do
   it 'has stylesheets' do
-    b = FB2rb::Book.new
+    b = described_class.new
     type = 'text/css'
     content = StringIO.new('p { color: red; }')
     b.add_stylesheet(type, content)
 
     io = b.write_compressed
 
-    b2 = FB2rb::Book.read_compressed(io)
+    b2 = described_class.read_compressed(io)
     stylesheet2 = b2.stylesheets[0]
     expect(stylesheet2).not_to be_nil
     expect(stylesheet2.content_type).to eq(type)
@@ -20,33 +20,33 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
   end
 
   it 'has binaries' do
-    b = FB2rb::Book.new
+    b = described_class.new
     b.add_binary 'file', StringIO.new('text'), 'text/plain'
 
     expect(b.binaries.size).to eq(1)
 
     io = b.write_compressed
 
-    b2 = FB2rb::Book.read_compressed(io)
+    b2 = described_class.read_compressed(io)
     expect(b2.binaries.size).to eq(1)
   end
 
   it 'has bodies' do
-    b = FB2rb::Book.new
+    b = described_class.new
     body = FB2rb::Body.new(name: 'bla', content: '<p>text</p>')
     b.bodies << body
 
     io = b.write_compressed
 
-    b2 = FB2rb::Book.read_compressed(io)
+    b2 = described_class.read_compressed(io)
     body2 = b2.bodies[0]
     expect(body2).not_to be_nil
     expect(body2.name).to eq(body.name)
     expect(body2.content).to match(%r{<p( xmlns=".*")?>text</p>})
   end
 
-  it 'has title info' do # rubocop:disable Metrics/BlockLength
-    b = FB2rb::Book.new
+  it 'has title info' do
+    b = described_class.new
     b.description.title_info.genres << 'science'
     b.description.title_info.book_title = 'Bla'
     b.description.title_info.annotation = '<empty-line/>'
@@ -69,7 +69,7 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
 
     io = b.write_compressed
 
-    b2 = FB2rb::Book.read_compressed(io)
+    b2 = described_class.read_compressed(io)
     expect(b2.description.title_info.genres).to eq(['science'])
     expect(b2.description.title_info.book_title).to eq(b.description.title_info.book_title)
     expect(b2.description.title_info.keywords).to eq(['keyword'])
@@ -103,8 +103,8 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
     expect(s2.number).to eq(s.number)
   end
 
-  it 'has document info' do # rubocop:disable Metrics/BlockLength
-    b = FB2rb::Book.new
+  it 'has document info' do
+    b = described_class.new
     a = FB2rb::Author.new(
       first_name: 'Marat',
       middle_name: 'Spartakovich',
@@ -128,7 +128,7 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
 
     io = b.write_compressed
 
-    b2 = FB2rb::Book.read_compressed(io)
+    b2 = described_class.read_compressed(io)
     expect(b2.description.document_info.program_used).to eq(b.description.document_info.program_used)
     expect(b2.description.document_info.date.display_value).to eq(b.description.document_info.date.display_value)
     expect(b2.description.document_info.date.value).to eq(b.description.document_info.date.value)
@@ -149,7 +149,7 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
   end
 
   it 'has publish info' do
-    b = FB2rb::Book.new
+    b = described_class.new
     b.description.publish_info = FB2rb::PublishInfo.new
     b.description.publish_info.book_name = 'Book'
     b.description.publish_info.publisher = 'Publisher'
@@ -161,7 +161,7 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
 
     io = b.write_compressed
 
-    b2 = FB2rb::Book.read_compressed(io)
+    b2 = described_class.read_compressed(io)
     expect(b2.description.publish_info.book_name).to eq(b.description.publish_info.book_name)
     expect(b2.description.publish_info.publisher).to eq(b.description.publish_info.publisher)
     expect(b2.description.publish_info.city).to eq(b.description.publish_info.city)
@@ -175,21 +175,21 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
   end
 
   it 'has custom info' do
-    b = FB2rb::Book.new
+    b = described_class.new
     c = FB2rb::CustomInfo.new(type: 'fb2rb', content: 'custom data')
     b.description.custom_infos << c
 
     io = b.write_compressed
 
-    b2 = FB2rb::Book.read_compressed(io)
+    b2 = described_class.read_compressed(io)
     c2 = b2.description.custom_infos[0]
     expect(c2).not_to be_nil
     expect(c2.type).to eq(c.type)
     expect(c2.content).to eq(c.content)
   end
 
-  it 'should produce deterministic output' do
-    b = FB2rb::Book.new
+  it 'produces deterministic output' do
+    b = described_class.new
     b.description.document_info.date.value = Date.new
 
     io1 = b.write_compressed
@@ -200,11 +200,11 @@ describe FB2rb::Book do # rubocop:disable Metrics/BlockLength
   end
 
   it 'can read/write uncompressed FB2 XML' do
-    b = FB2rb::Book.new
+    b = described_class.new
     b.description.title_info.book_title = 'Book'
     io = b.write_uncompressed
     io.seek(0)
-    b2 = FB2rb::Book.read_uncompressed(io)
+    b2 = described_class.read_uncompressed(io)
     expect(b2).not_to be_nil
     expect(b2.description.title_info.book_title).to eq(b.description.title_info.book_title)
   end

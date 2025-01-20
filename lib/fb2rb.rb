@@ -140,7 +140,7 @@ module FB2rb
     end
 
     # Writes FB2 (uncompressed) to file or IO object specified by the argument.
-    def write_uncompressed(filename_or_io = StringIO.new) # rubocop:disable Metrics/MethodLength
+    def write_uncompressed(filename_or_io = StringIO.new)
       data = (Nokogiri::XML::Builder.new(encoding: 'UTF-8') do |xml|
         to_xml(xml)
       end).to_xml
@@ -148,9 +148,7 @@ module FB2rb
       if filename_or_io.respond_to?(:write)
         filename_or_io.write(data)
       else
-        File.open(filename_or_io, 'wb') do |io|
-          io.write(data)
-        end
+        File.binwrite(filename_or_io, data)
       end
       filename_or_io
     end

@@ -1,0 +1,11 @@
+require:
+  - rubocop-rake
+  - rubocop-rspec
+AllCops:
+  NewCops: disable
+RSpec/ExampleLength:
+  Enabled: false
+RSpec/MultipleExpectations:
+  Enabled: false
+RSpec/SpecFilePathFormat:
+  Enabled: false
