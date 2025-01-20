@@ -18,7 +18,6 @@ Gem::Specification.new do |s|
   end
   s.require_paths = ['lib']
 
-  s.add_runtime_dependency 'base64', '~> 0.2'
   s.add_runtime_dependency 'nokogiri', '>= 1.10', '< 2.0'
   s.add_runtime_dependency 'rubyzip', '>= 2.3.0', '< 3.0'
 

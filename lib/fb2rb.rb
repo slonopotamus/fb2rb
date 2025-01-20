@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require 'base64'
 require 'date'
 require 'fb2rb/version'
 require 'nokogiri'
@@ -715,12 +714,12 @@ module FB2rb
     end
 
     def self.parse(xml)
-      decoded = Base64.decode64(xml.text)
+      decoded = xml.text.unpack('m0')
       Binary.new(id: xml['id'], content: decoded, content_type: xml['content-type'])
     end
 
     def to_xml(xml)
-      encoded = Base64.encode64(@content)
+      encoded = [@content].pack('m0')
       xml.binary(encoded, 'id' => @id, 'content-type' => @content_type)
     end
   end
