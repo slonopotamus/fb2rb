@@ -21,7 +21,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'nokogiri', '>= 1.10', '< 2.0'
   s.add_dependency 'rubyzip', '>= 2.3.0', '< 3.0'
 
-  s.add_development_dependency 'rake', '~> 13.2.0'
+  s.add_development_dependency 'rake', '~> 13.3.0'
   s.add_development_dependency 'rspec', '~> 3.13.0'
   s.add_development_dependency 'rubocop', '~> 1.75.1'
   s.add_development_dependency 'rubocop-rake', '~> 0.7.1'
