@@ -712,7 +712,7 @@ module FB2rb
     end
 
     def self.parse(xml)
-      decoded = xml.text.unpack1('m0')
+      decoded = xml.text.unpack1('m')
       Binary.new(id: xml['id'], content: decoded, content_type: xml['content-type'])
     end
 
